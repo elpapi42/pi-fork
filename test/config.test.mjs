@@ -358,3 +358,168 @@ test("mergeEnvironment keeps case-sensitive keys distinct on non-Windows", async
     cleanup();
   }
 });
+
+test("loadConfig parses defaultEffort and complete effortProfiles", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-fork-config-fixture-"));
+  const agentDir = path.join(tmpDir, "agent");
+  const projectDir = path.join(tmpDir, "project");
+  const projectSettingsDir = path.join(projectDir, ".pi");
+  const { moduleUrl, cleanup } = createTestableConfigModule();
+
+  fs.mkdirSync(agentDir, { recursive: true });
+  fs.mkdirSync(projectSettingsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(projectSettingsDir, "settings.json"),
+    JSON.stringify({
+      "pi-fork": {
+        defaultEffort: "balanced",
+        effortProfiles: {
+          fast: { provider: "openai-codex", id: "gpt-fast", thinking: "minimal" },
+          balanced: { provider: "openai-codex", id: "gpt-balanced", thinking: "medium" },
+          deep: { provider: "openai-codex", id: "gpt-deep", thinking: "high" },
+        },
+      },
+    }),
+  );
+
+  const previous = process.env.PI_FORK_TEST_AGENT_DIR;
+  process.env.PI_FORK_TEST_AGENT_DIR = agentDir;
+
+  try {
+    const { loadConfig } = await import(`${moduleUrl}?t=${Date.now()}`);
+    assert.deepEqual(loadConfig(projectDir), {
+      extensions: null,
+      costFooter: true,
+      environment: {},
+      defaultEffort: "balanced",
+      effortProfiles: {
+        fast: { provider: "openai-codex", id: "gpt-fast", thinking: "minimal" },
+        balanced: { provider: "openai-codex", id: "gpt-balanced", thinking: "medium" },
+        deep: { provider: "openai-codex", id: "gpt-deep", thinking: "high" },
+      },
+    });
+  } finally {
+    if (previous === undefined) delete process.env.PI_FORK_TEST_AGENT_DIR;
+    else process.env.PI_FORK_TEST_AGENT_DIR = previous;
+    cleanup();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("loadConfig merges effortProfiles by key with project overrides", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-fork-config-fixture-"));
+  const agentDir = path.join(tmpDir, "agent");
+  const projectDir = path.join(tmpDir, "project");
+  const projectSettingsDir = path.join(projectDir, ".pi");
+  const { moduleUrl, cleanup } = createTestableConfigModule();
+
+  fs.mkdirSync(agentDir, { recursive: true });
+  fs.mkdirSync(projectSettingsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(agentDir, "settings.json"),
+    JSON.stringify({
+      "pi-fork": {
+        defaultEffort: "fast",
+        effortProfiles: {
+          fast: { provider: "global", id: "fast", thinking: "minimal" },
+          balanced: { provider: "global", id: "balanced", thinking: "medium" },
+        },
+      },
+    }),
+  );
+  fs.writeFileSync(
+    path.join(projectSettingsDir, "settings.json"),
+    JSON.stringify({
+      "pi-fork": {
+        defaultEffort: "deep",
+        effortProfiles: {
+          balanced: { provider: "project", id: "balanced", thinking: "high" },
+          deep: { provider: "project", id: "deep", thinking: "xhigh" },
+        },
+      },
+    }),
+  );
+
+  const previous = process.env.PI_FORK_TEST_AGENT_DIR;
+  process.env.PI_FORK_TEST_AGENT_DIR = agentDir;
+
+  try {
+    const { loadConfig } = await import(`${moduleUrl}?t=${Date.now()}`);
+    assert.deepEqual(loadConfig(projectDir).effortProfiles, {
+      fast: { provider: "global", id: "fast", thinking: "minimal" },
+      balanced: { provider: "project", id: "balanced", thinking: "high" },
+      deep: { provider: "project", id: "deep", thinking: "xhigh" },
+    });
+    assert.equal(loadConfig(projectDir).defaultEffort, "deep");
+  } finally {
+    if (previous === undefined) delete process.env.PI_FORK_TEST_AGENT_DIR;
+    else process.env.PI_FORK_TEST_AGENT_DIR = previous;
+    cleanup();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("loadConfig ignores invalid effort names and incomplete effortProfiles", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-fork-config-fixture-"));
+  const agentDir = path.join(tmpDir, "agent");
+  const projectDir = path.join(tmpDir, "project");
+  const projectSettingsDir = path.join(projectDir, ".pi");
+  const { moduleUrl, cleanup } = createTestableConfigModule();
+
+  fs.mkdirSync(agentDir, { recursive: true });
+  fs.mkdirSync(projectSettingsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(projectSettingsDir, "settings.json"),
+    JSON.stringify({
+      "pi-fork": {
+        defaultEffort: "maximum",
+        effortProfiles: {
+          fast: { provider: "", id: "gpt-fast", thinking: "minimal" },
+          balanced: { provider: "openai-codex", thinking: "medium" },
+          deep: { provider: "openai-codex", id: "gpt-deep", thinking: "massive" },
+        },
+      },
+    }),
+  );
+
+  const previous = process.env.PI_FORK_TEST_AGENT_DIR;
+  process.env.PI_FORK_TEST_AGENT_DIR = agentDir;
+
+  try {
+    const { loadConfig } = await import(`${moduleUrl}?t=${Date.now()}`);
+    const config = loadConfig(projectDir);
+    assert.equal(config.defaultEffort, undefined);
+    assert.equal(config.effortProfiles, undefined);
+  } finally {
+    if (previous === undefined) delete process.env.PI_FORK_TEST_AGENT_DIR;
+    else process.env.PI_FORK_TEST_AGENT_DIR = previous;
+    cleanup();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("loadConfig keeps no-profile config backward compatible", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-fork-config-fixture-"));
+  const agentDir = path.join(tmpDir, "agent");
+  const projectDir = path.join(tmpDir, "project");
+  const { moduleUrl, cleanup } = createTestableConfigModule();
+
+  fs.mkdirSync(agentDir, { recursive: true });
+
+  const previous = process.env.PI_FORK_TEST_AGENT_DIR;
+  process.env.PI_FORK_TEST_AGENT_DIR = agentDir;
+
+  try {
+    const { loadConfig } = await import(`${moduleUrl}?t=${Date.now()}`);
+    assert.deepEqual(loadConfig(projectDir), {
+      extensions: null,
+      costFooter: true,
+      environment: {},
+    });
+  } finally {
+    if (previous === undefined) delete process.env.PI_FORK_TEST_AGENT_DIR;
+    else process.env.PI_FORK_TEST_AGENT_DIR = previous;
+    cleanup();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});

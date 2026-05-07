@@ -12,12 +12,15 @@
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import { aggregateInclusiveCost, formatForkCostStatus } from "./cost.js";
-import { loadConfig } from "./config.js";
+import { EFFORT_LEVELS, loadConfig, type ForkConfig } from "./config.js";
 import { renderForkCall, renderForkResult } from "./render.js";
 import { runFork } from "./runner.js";
 import { getResultSummaryText } from "./runner-events.js";
 import {
   type ForkDetails,
+  type ForkEffort,
+  type ForkEffortSource,
+  type ForkEffortState,
   type ForkResult,
   emptyUsage,
   isResultError,
@@ -28,6 +31,10 @@ const ForkParams = Type.Object({
     description:
       "The task for the fork to complete. Specify what to do and where the fork's decision authority ends — it will surface ambiguities back to you rather than resolve them on your behalf. The fork already knows to return dense, concrete output with snippets and relationships; you only need to call out anything task-specific about the return shape.",
   }),
+  effort: Type.Optional(Type.Union(EFFORT_LEVELS.map((level) => Type.Literal(level)), {
+    description:
+      "Optional reasoning depth for the fork. Use the lowest effort that can reliably handle the task: fast for quick lookups, simple checks, mechanical edits, or narrow validation; balanced for normal exploration, implementation, and testing; deep for ambiguous debugging, architecture/design decisions, security or concurrency analysis, high-risk reviews, or tasks where subtle mistakes are costly. If unsure, choose balanced.",
+  })),
 });
 
 interface SessionSnapshotSource {
@@ -49,6 +56,34 @@ function buildForkSessionSnapshotJsonl(
 
 function makeDetails(results: ForkResult[]): ForkDetails {
   return { results };
+}
+
+function resolveEffortState(
+  requestedEffort: unknown,
+  config: ForkConfig,
+): ForkEffortState | undefined {
+  const selected = EFFORT_LEVELS.includes(requestedEffort as ForkEffort)
+    ? requestedEffort as ForkEffort
+    : config.defaultEffort;
+  if (!selected) return undefined;
+
+  const source: ForkEffortSource = requestedEffort === selected ? "tool" : "default";
+  const profile = config.effortProfiles?.[selected];
+  if (profile) return { selected, source, profile };
+
+  const label = source === "tool" ? "Requested" : "Default";
+  return {
+    selected,
+    source,
+    warning: `${label} effort \"${selected}\" has no configured profile; using child Pi defaults.`,
+  };
+}
+
+function formatResultContent(result: ForkResult, isError: boolean): string {
+  const warning = result.effort?.warning ? `Fork warning: ${result.effort.warning}\n\n` : "";
+  const summary = getResultSummaryText(result);
+  if (isError) return `${warning}Fork ${result.stopReason || "failed"}: ${summary}`;
+  return `${warning}${summary}`;
 }
 
 function emptyFailedResult(task: string, message: string): ForkResult {
@@ -97,26 +132,28 @@ export default function (pi: ExtensionAPI) {
     name: "fork",
     label: "Fork",
     description:
-      "Spawn a fork of yourself to handle a focused task. The fork inherits your full session context and works independently — its activity stays out of your context window. Forks return dense, concrete output: the snippets, signatures, and relationships you'd otherwise have to discover yourself, plus anything they found beyond the task that's worth knowing. Use for anything that would generate context noise: exploration, implementation, testing, iteration.",
+      "Spawn a fork of yourself to handle a focused task independently. Use it to offload context-heavy work such as exploration, implementation, testing, review, or option analysis. Forks return dense, concrete findings and can be assigned an effort level matching the task's required reasoning depth.",
     parameters: ForkParams,
     renderCall: renderForkCall,
     renderResult: renderForkResult,
 
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
+      const config = loadConfig(ctx.cwd);
+      const effort = resolveEffortState(params.effort, config);
       const snapshot = buildForkSessionSnapshotJsonl(ctx.sessionManager);
       if (!snapshot) {
         const result = emptyFailedResult(
           params.task,
           "Cannot fork: failed to snapshot current session context.",
         );
+        if (effort) result.effort = effort;
         return {
-          content: [{ type: "text" as const, text: getResultSummaryText(result) }],
+          content: [{ type: "text" as const, text: formatResultContent(result, true) }],
           details: makeDetails([result]),
           isError: true,
         };
       }
 
-      const config = loadConfig(ctx.cwd);
       const result = await runFork({
         cwd: ctx.cwd,
         task: params.task,
@@ -126,6 +163,7 @@ export default function (pi: ExtensionAPI) {
         signal,
         onUpdate,
         makeDetails,
+        effort,
       });
 
       if (isResultError(result)) {
@@ -133,7 +171,7 @@ export default function (pi: ExtensionAPI) {
           content: [
             {
               type: "text" as const,
-              text: `Fork ${result.stopReason || "failed"}: ${getResultSummaryText(result)}`,
+              text: formatResultContent(result, true),
             },
           ],
           details: makeDetails([result]),
@@ -142,7 +180,7 @@ export default function (pi: ExtensionAPI) {
       }
 
       return {
-        content: [{ type: "text" as const, text: getResultSummaryText(result) }],
+        content: [{ type: "text" as const, text: formatResultContent(result, false) }],
         details: makeDetails([result]),
       };
     },

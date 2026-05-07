@@ -45,6 +45,23 @@ export interface ForkThinkingActivity extends ForkThinkingState {
 
 export type ForkActivity = ForkToolActivity | ForkThinkingActivity;
 
+export type ForkEffort = "fast" | "balanced" | "deep";
+export type ForkEffortSource = "tool" | "default";
+export type ForkThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+
+export interface ForkEffortProfile {
+  provider: string;
+  id: string;
+  thinking: ForkThinkingLevel;
+}
+
+export interface ForkEffortState {
+  selected: ForkEffort;
+  source: ForkEffortSource;
+  profile?: ForkEffortProfile;
+  warning?: string;
+}
+
 export interface ForkRetryHistoryEntry {
   type: "start" | "end";
   attempt?: number;
@@ -78,6 +95,7 @@ export interface ForkResult {
   stopReason?: string;
   errorMessage?: string;
   sawAgentEnd?: boolean;
+  effort?: ForkEffortState;
   retry?: ForkRetryState;
   thinking?: ForkThinkingState;
   activityCount?: number;

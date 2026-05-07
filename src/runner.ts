@@ -15,6 +15,8 @@ import { parseInheritedCliArgs } from "./runner-cli.js";
 import { getForkProgressText, processPiJsonLine } from "./runner-events.js";
 import {
   type ForkDetails,
+  type ForkEffortProfile,
+  type ForkEffortState,
   type ForkResult,
   emptyUsage,
   normalizeCompletedResult,
@@ -282,15 +284,17 @@ Remember:
 
 const inheritedCliArgs = parseInheritedCliArgs(process.argv);
 
-function buildPiArgs(
+export function buildPiArgs(
   task: string,
   forkSessionPath: string,
   extensions: string[] | null,
+  effortProfile?: ForkEffortProfile,
+  inherited = inheritedCliArgs,
 ): string[] {
   const args: string[] = [
     "--mode",
     "json",
-    ...inheritedCliArgs.alwaysProxy,
+    ...inherited.alwaysProxy,
     "-p",
     "--session",
     forkSessionPath,
@@ -300,17 +304,23 @@ function buildPiArgs(
     args.push("--no-extensions");
   }
 
-  if (inheritedCliArgs.fallbackModel) {
-    args.push("--model", inheritedCliArgs.fallbackModel);
+  if (inherited.fallbackModel) {
+    args.push("--model", inherited.fallbackModel);
   }
 
-  if (inheritedCliArgs.fallbackThinking) {
-    args.push("--thinking", inheritedCliArgs.fallbackThinking);
+  if (inherited.fallbackThinking) {
+    args.push("--thinking", inherited.fallbackThinking);
   }
 
-  if (inheritedCliArgs.fallbackTools !== undefined) {
-    args.push("--tools", inheritedCliArgs.fallbackTools);
-  } else if (inheritedCliArgs.fallbackNoTools) {
+  if (effortProfile) {
+    args.push("--provider", effortProfile.provider);
+    args.push("--model", effortProfile.id);
+    args.push("--thinking", effortProfile.thinking);
+  }
+
+  if (inherited.fallbackTools !== undefined) {
+    args.push("--tools", inherited.fallbackTools);
+  } else if (inherited.fallbackNoTools) {
     args.push("--no-tools");
   }
 
@@ -333,6 +343,7 @@ export interface RunForkOptions {
   signal?: AbortSignal;
   onUpdate?: OnUpdateCallback;
   makeDetails: (results: ForkResult[]) => ForkDetails;
+  effort?: ForkEffortState;
 }
 
 export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
@@ -345,10 +356,11 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
     signal,
     onUpdate,
     makeDetails,
+    effort,
   } = opts;
 
   if (!forkSessionSnapshotJsonl.trim()) {
-    return {
+    const failedResult: ForkResult = {
       task,
       exitCode: 1,
       messages: [],
@@ -357,6 +369,8 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
       stopReason: "error",
       errorMessage: "Cannot fork: missing parent session snapshot context.",
     };
+    if (effort) failedResult.effort = effort;
+    return failedResult;
   }
 
   const result: ForkResult = {
@@ -366,6 +380,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
     stderr: "",
     usage: emptyUsage(),
   };
+  if (effort) result.effort = effort;
 
   const emitUpdate = () => {
     onUpdate?.({
@@ -386,7 +401,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
   forkSessionTmpPath = tmp.filePath;
 
   try {
-    const piArgs = buildPiArgs(task, forkSessionTmpPath, extensions);
+    const piArgs = buildPiArgs(task, forkSessionTmpPath, extensions, effort?.profile);
     let wasAborted = false;
 
     const exitCode = await new Promise<number>((resolve) => {

@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { buildChildEnv } from "../src/env.ts";
-import { runFork } from "../src/runner.ts";
+import { buildPiArgs, runFork } from "../src/runner.ts";
 import { isResultError, isResultSuccess, normalizeCompletedResult } from "../src/types.ts";
 
 function envObject(entries) {
@@ -25,7 +25,7 @@ function makeDetails(results) {
   return { results };
 }
 
-async function runWithFakePi(events, { trailingDelayMs = 0, exitCode = 0 } = {}) {
+async function runWithFakePi(events, { trailingDelayMs = 0, exitCode = 0, effort } = {}) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-fork-test-"));
   const fakePi = path.join(tmpDir, "fake-pi.mjs");
   fs.writeFileSync(
@@ -50,6 +50,7 @@ if (${exitCode} !== 0) process.exit(${exitCode});
       forkSessionSnapshotJsonl: '{"type":"session","id":"test-session"}\n',
       extensions: [],
       makeDetails,
+      effort,
     });
   } finally {
     process.argv[1] = originalArgv1;
@@ -327,4 +328,97 @@ test("runFork preserves semantic success for error stop reason with final output
   assert.equal(isResultError(result), false);
   assert.ok(Date.now() - startedAt >= 900, "runner should allow a retry-decision window before semantic success");
   assert.ok(Date.now() - startedAt < 1800, "runner should not wait for process exit when no retry arrives");
+});
+
+test("buildPiArgs appends effort profile model flags", () => {
+  const args = buildPiArgs(
+    "inspect",
+    "/tmp/fork.jsonl",
+    null,
+    { provider: "openai-codex", id: "gpt-deep", thinking: "high" },
+    { alwaysProxy: [], extensionArgs: [] },
+  );
+
+  assert.deepEqual(
+    args.slice(args.indexOf("--provider"), args.indexOf("--provider") + 6),
+    ["--provider", "openai-codex", "--model", "gpt-deep", "--thinking", "high"],
+  );
+});
+
+test("buildPiArgs omits effort model flags when no profile is present", () => {
+  const args = buildPiArgs(
+    "inspect",
+    "/tmp/fork.jsonl",
+    null,
+    undefined,
+    { alwaysProxy: [], extensionArgs: [] },
+  );
+
+  assert.equal(args.includes("--provider"), false);
+  assert.equal(args.includes("--model"), false);
+  assert.equal(args.includes("--thinking"), false);
+});
+
+test("buildPiArgs orders effort profile after inherited fallback model and thinking", () => {
+  const args = buildPiArgs(
+    "inspect",
+    "/tmp/fork.jsonl",
+    null,
+    { provider: "profile-provider", id: "profile-model", thinking: "xhigh" },
+    {
+      alwaysProxy: ["--provider", "parent-provider"],
+      extensionArgs: [],
+      fallbackModel: "parent-model",
+      fallbackThinking: "low",
+      fallbackTools: "read,bash",
+      fallbackNoTools: false,
+    },
+  );
+
+  const parentModelIndex = args.indexOf("parent-model");
+  const profileModelIndex = args.indexOf("profile-model");
+  const parentThinkingIndex = args.indexOf("low");
+  const profileThinkingIndex = args.indexOf("xhigh");
+  assert.ok(parentModelIndex !== -1);
+  assert.ok(profileModelIndex !== -1);
+  assert.ok(parentThinkingIndex !== -1);
+  assert.ok(profileThinkingIndex !== -1);
+  assert.ok(profileModelIndex > parentModelIndex);
+  assert.ok(profileThinkingIndex > parentThinkingIndex);
+});
+
+test("runFork includes compact effort metadata in details", { timeout: 2500 }, async () => {
+  const effort = {
+    selected: "deep",
+    source: "tool",
+    profile: { provider: "openai-codex", id: "gpt-deep", thinking: "high" },
+  };
+  const result = await runWithFakePi(
+    [
+      { value: { type: "message_end", message: assistantSuccess("Done with deep effort.") } },
+      { value: { type: "agent_end", messages: [assistantSuccess("Done with deep effort.")] } },
+    ],
+    { trailingDelayMs: 2000, effort },
+  );
+
+  assert.deepEqual(result.effort, effort);
+});
+
+test("runFork preserves unresolved effort warning metadata without changing child behavior", { timeout: 2500 }, async () => {
+  const effort = {
+    selected: "deep",
+    source: "tool",
+    warning: 'Requested effort "deep" has no configured profile; using child Pi defaults.',
+  };
+  const result = await runWithFakePi(
+    [
+      { value: { type: "message_end", message: assistantSuccess("Done with defaults.") } },
+      { value: { type: "agent_end", messages: [assistantSuccess("Done with defaults.")] } },
+    ],
+    { trailingDelayMs: 2000, effort },
+  );
+
+  assert.deepEqual(result.effort, effort);
+  assert.equal(result.errorMessage, undefined);
+  assert.equal(isResultSuccess(result), true);
 });

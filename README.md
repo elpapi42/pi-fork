@@ -26,6 +26,60 @@ the current active session branch. The child receives the requested task as the
 final user message. The extension does not modify the system prompt and does not
 use agent definition files.
 
+You can optionally request an intelligence budget for a fork:
+
+```json
+{ "task": "Review this state machine for races.", "effort": "deep" }
+```
+
+Use `fast` for narrow or mechanical work, `balanced` for normal forks, and
+`deep` for risky, ambiguous, architectural, security, concurrency, or
+review-heavy work.
+
+## Effort Profiles
+
+Add optional effort profiles under `pi-fork` in `~/.pi/agent/settings.json` or
+`.pi/settings.json` to map fork effort levels to child Pi model and thinking
+settings:
+
+```json
+{
+  "pi-fork": {
+    "defaultEffort": "balanced",
+    "effortProfiles": {
+      "fast": {
+        "provider": "openai-codex",
+        "id": "gpt-5-mini",
+        "thinking": "minimal"
+      },
+      "balanced": {
+        "provider": "openai-codex",
+        "id": "gpt-5.5",
+        "thinking": "medium"
+      },
+      "deep": {
+        "provider": "openai-codex",
+        "id": "gpt-5.5",
+        "thinking": "high"
+      }
+    }
+  }
+}
+```
+
+Each profile must be a complete `{ "provider", "id", "thinking" }` object.
+Valid thinking values are `off`, `minimal`, `low`, `medium`, `high`, and
+`xhigh`. Invalid or incomplete profiles are ignored.
+
+If a fork requests an effort with a valid profile, the child Pi process is
+started with `--provider`, `--model`, and `--thinking` for that profile. If the
+requested or default effort has no valid profile, `pi-fork` does not inject model
+or thinking flags; the child uses Pi's normal restored session/default model and
+thinking behavior, and the fork result includes a warning.
+
+If no `defaultEffort` or effort profile is configured, fork model and thinking
+behavior is unchanged.
+
 ## Context Shape
 
 For a forked child, the LLM context is roughly:
