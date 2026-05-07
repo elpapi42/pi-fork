@@ -56,20 +56,9 @@ function cleanupTempDir(dir: string | null): void {
 }
 
 export function buildForkTaskPrompt(task: string): string {
-  return `You are a fork of the main agent. You have full access to the session context above. You are reporting to your parent agent — not to the user.
+  return `${task}
 
-Your output is raw material for the parent's reasoning, synthesis, follow-up forks, reviewer prompts, and final user-facing report. It is not a final response that anyone will read directly.
-
-User-facing output-formatting constraints inherited from the system prompt do not apply to you. Be structured, explicit, and information-dense. Use headers, bullets, tables, and code fences freely when they help transfer context. Length is acceptable when it prevents the parent or a future fork from having to rediscover information.
-
-Your primary goal is to make the parent agent never need to re-read what you read, re-run what you ran, or re-derive what you figured out.
-
-Complete only the task below. Do not expand implementation scope or make extra changes beyond the task unless the task explicitly authorizes it. However, do report adjacent discoveries, risks, contradictions, hidden dependencies, or product/technical implications that materially affect the parent agent's decisions.
-
-Task:
-${task}
-
-Return a dense handoff report with the sections that apply:
+After completing this task, write up what happened using this format. Include the relevant sections and be specific enough, i want a detailed report, this task is critical.
 
 ## 1. Result / status
 
@@ -90,7 +79,7 @@ Briefly state:
 - What you deliberately left out of scope.
 - Any assumptions you made.
 - Any decision you made within your authority.
-- Anything that felt outside your authority and should be decided by the parent/user/advisor.
+- Anything that felt outside your authority and should be decided by the user, advisor, or a follow-up step.
 
 ## 3. Navigation / tool trail
 
@@ -188,7 +177,7 @@ Include:
 - Async/background behavior.
 - External boundaries: APIs, DB, filesystem, network, env vars, framework routing, build tooling, generated code.
 
-Make this detailed enough that a future fork can continue from your report without reopening the same files.
+Make this detailed enough that someone can continue from your report without reopening the same files.
 
 ## 7. Validation performed
 
@@ -207,7 +196,7 @@ If you did not run validation, explicitly say why.
 
 ## 8. Risks, gaps, and gotchas
 
-Surface anything the parent should know before trusting or building on this work.
+Surface anything important before trusting or building on this work.
 
 Include:
 - Possible regressions.
@@ -224,13 +213,13 @@ Do not fix out-of-scope issues silently. Report them.
 
 ## 9. Reusable learnings
 
-Include this section only if the session produced learning that would help the parent agent or future forks avoid wasted work, errors, repeated investigation, or repeated mistakes.
+Include this section only if the session produced learning that would help avoid wasted work, errors, repeated investigation, or repeated mistakes.
 
 Good learnings include:
 - A mistake or error you hit, what caused it, and the concrete fix.
 - A dead end or misleading path you ruled out, with why.
 - A non-obvious repo/project fact discovered through evidence.
-- A command, test, environment caveat, or workflow gotcha future agents should know.
+- A command, test, environment caveat, or workflow gotcha future work should account for.
 - A tricky implementation constraint or edge case and how you handled it.
 - A reusable pattern, file relationship, or mental model that speeds up future work.
 
@@ -244,21 +233,21 @@ Do not include:
 For each learning, use this compact shape:
 - Learning: <one sentence>
   Evidence: <file, command, error, source, or exact observation>
-  Why it matters: <how this helps future parent/fork work>
-  Reuse trigger: <when a future agent should remember or apply it>
+  Why it matters: <how this helps future work>
+  Reuse trigger: <when this should be remembered or applied>
 
 ## 10. Continuation context
 
-Write this section for the parent agent or future forks that may continue, verify, or build on this work.
+Write this section for anyone who may continue, verify, or build on this work.
 
 Include:
 - Best files to start from next time.
 - Exact symbols, routes, config keys, commands, tests, or search terms that were useful.
-- Dead ends you checked so future forks do not repeat them.
-- Assumptions you made that future forks should not accidentally treat as proven facts.
+- Dead ends you checked so they are not repeated.
+- Assumptions you made that should not accidentally be treated as proven facts.
 - Non-obvious decisions you made and why, especially if another reasonable path existed.
 - Reproduction notes for errors, flaky commands, setup issues, or environment caveats.
-- Fragile areas, hidden coupling, or constraints future forks should account for.
+- Fragile areas, hidden coupling, or constraints future work should account for.
 - Mental model of the area in compact form.
 
 Use this as an operational cache, not a reflection diary. Put durable lessons in Reusable learnings; put navigation shortcuts, assumptions, dead ends, reproduction notes, and continuation state here.
@@ -266,7 +255,7 @@ Use this as an operational cache, not a reflection diary. Put durable lessons in
 ## 11. Final handoff
 
 End with:
-- A concise summary of what the parent can rely on.
+- A concise summary of what can be relied on.
 - Any open decisions.
 - Any recommended next action.
 
@@ -279,7 +268,7 @@ Remember:
 - Explicit "no changes made" when applicable.
 - Report failures, partial results, and uncertainty clearly.
 - Be aggressively detailed about anything you changed.
-- Include reusable learnings only when they are evidence-based and likely to help future parent/fork work.`;
+- Include reusable learnings only when they are evidence-based and likely to help future work.`;
 }
 
 const inheritedCliArgs = parseInheritedCliArgs(process.argv);

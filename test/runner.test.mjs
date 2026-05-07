@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { buildChildEnv } from "../src/env.ts";
-import { buildPiArgs, runFork } from "../src/runner.ts";
+import { buildForkTaskPrompt, buildPiArgs, runFork } from "../src/runner.ts";
 import { isResultError, isResultSuccess, normalizeCompletedResult } from "../src/types.ts";
 
 function envObject(entries) {
@@ -328,6 +328,57 @@ test("runFork preserves semantic success for error stop reason with final output
   assert.equal(isResultError(result), false);
   assert.ok(Date.now() - startedAt >= 900, "runner should allow a retry-decision window before semantic success");
   assert.ok(Date.now() - startedAt < 1800, "runner should not wait for process exit when no retry arrives");
+});
+
+test("buildForkTaskPrompt starts with the raw task text", () => {
+  const task = "Review the prompt framing.";
+  const prompt = buildForkTaskPrompt(task);
+
+  assert.equal(prompt.startsWith(`${task}\n\nAfter completing this task, write up what happened using this format.`), true);
+});
+
+test("buildForkTaskPrompt avoids explicit fork identity framing", () => {
+  const prompt = buildForkTaskPrompt("Review the prompt framing.");
+
+  assert.equal(prompt.includes("You are a fork of the main agent"), false);
+  assert.equal(prompt.includes("parent agent"), false);
+  assert.equal(prompt.includes("main agent"), false);
+  assert.equal(prompt.includes("Task:"), false);
+  assert.equal(prompt.includes("context above"), false);
+  assert.equal(prompt.includes("future fork"), false);
+  assert.equal(prompt.includes("future forks"), false);
+});
+
+test("buildForkTaskPrompt keeps required report sections", () => {
+  const prompt = buildForkTaskPrompt("Review the prompt framing.");
+  const headings = [
+    "## 1. Result / status",
+    "## 2. Scope and authority",
+    "## 3. Navigation / tool trail",
+    "## 4. Evidence and context discovered",
+    "## 5. Changes made",
+    "## 6. Data/control flow",
+    "## 7. Validation performed",
+    "## 8. Risks, gaps, and gotchas",
+    "## 9. Reusable learnings",
+    "## 10. Continuation context",
+    "## 11. Final handoff",
+  ];
+
+  for (const heading of headings) assert.equal(prompt.includes(heading), true, `missing ${heading}`);
+});
+
+test("buildPiArgs appends generated fork task prompt as final child argument", () => {
+  const task = "Review final prompt argument.";
+  const args = buildPiArgs(
+    task,
+    "/tmp/fork.jsonl",
+    null,
+    undefined,
+    { alwaysProxy: [], extensionArgs: [] },
+  );
+
+  assert.equal(args.at(-1), buildForkTaskPrompt(task));
 });
 
 test("buildPiArgs appends effort profile model flags", () => {
