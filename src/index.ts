@@ -31,7 +31,9 @@ const ForkParams = Type.Object({
     description:
       "The task for the fork to complete. Specify what to do and where the fork's decision authority ends — it will surface ambiguities back to you rather than resolve them on your behalf. The fork already knows to return dense, concrete output with snippets and relationships; you only need to call out anything task-specific about the return shape.",
   }),
-  effort: Type.Optional(Type.Union(EFFORT_LEVELS.map((level) => Type.Literal(level)), {
+  effort: Type.Optional(Type.Unsafe<ForkEffort>({
+    type: "string",
+    enum: [...EFFORT_LEVELS],
     description:
       "Optional reasoning depth for the fork. Use the lowest effort that can reliably handle the task: fast for quick lookups, simple checks, mechanical edits, or narrow validation; balanced for normal exploration, implementation, and testing; deep for ambiguous debugging, architecture/design decisions, security or concurrency analysis, high-risk reviews, or tasks where subtle mistakes are costly. If unsure, choose balanced.",
   })),
