@@ -162,6 +162,7 @@ export default function (pi: ExtensionAPI) {
         forkSessionSnapshotJsonl: snapshot,
         extensions: config.extensions,
         environment: config.environment,
+        offline: config.offline,
         signal,
         onUpdate,
         makeDetails,

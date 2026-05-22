@@ -28,10 +28,26 @@ function setEnvValue(
   defineEnvValue(env, key, value);
 }
 
+function deleteEnvValue(
+  env: NodeJS.ProcessEnv,
+  key: string,
+  platform: NodeJS.Platform,
+): void {
+  if (platform === "win32") {
+    const normalizedKey = key.toLowerCase();
+    for (const existingKey of Object.keys(env)) {
+      if (existingKey.toLowerCase() === normalizedKey) delete env[existingKey];
+    }
+    return;
+  }
+  delete env[key];
+}
+
 export function buildChildEnv(
   environment: Record<string, string> = {},
   parentEnv: NodeJS.ProcessEnv = process.env,
   platform: NodeJS.Platform = process.platform,
+  offline = true,
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(parentEnv)) {
@@ -40,6 +56,7 @@ export function buildChildEnv(
   for (const [key, value] of Object.entries(environment)) {
     setEnvValue(env, key, value, platform);
   }
-  setEnvValue(env, PI_OFFLINE_ENV, "1", platform);
+  if (offline) setEnvValue(env, PI_OFFLINE_ENV, "1", platform);
+  else deleteEnvValue(env, PI_OFFLINE_ENV, platform);
   return env;
 }

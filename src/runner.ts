@@ -329,6 +329,7 @@ export interface RunForkOptions {
   forkSessionSnapshotJsonl: string;
   extensions?: string[] | null;
   environment?: Record<string, string>;
+  offline?: boolean;
   signal?: AbortSignal;
   onUpdate?: OnUpdateCallback;
   makeDetails: (results: ForkResult[]) => ForkDetails;
@@ -342,6 +343,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
     forkSessionSnapshotJsonl,
     extensions = null,
     environment = {},
+    offline = true,
     signal,
     onUpdate,
     makeDetails,
@@ -399,7 +401,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
         cwd,
         shell: false,
         stdio: ["pipe", "pipe", "pipe"],
-        env: buildChildEnv(environment),
+        env: buildChildEnv(environment, process.env, process.platform, offline),
       });
 
       proc.stdin.on("error", () => {

@@ -25,7 +25,7 @@ function makeDetails(results) {
   return { results };
 }
 
-async function runWithFakePi(events, { trailingDelayMs = 0, exitCode = 0, effort } = {}) {
+async function runWithFakePi(events, { trailingDelayMs = 0, exitCode = 0, effort, offline } = {}) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-fork-test-"));
   const fakePi = path.join(tmpDir, "fake-pi.mjs");
   fs.writeFileSync(
@@ -51,6 +51,7 @@ if (${exitCode} !== 0) process.exit(${exitCode});
       extensions: [],
       makeDetails,
       effort,
+      offline,
     });
   } finally {
     process.argv[1] = originalArgv1;
@@ -177,6 +178,48 @@ test("buildChildEnv preserves PI_OFFLINE invariant after configured env", () => 
   );
 });
 
+test("buildChildEnv removes PI_OFFLINE when offline is false", () => {
+  assert.deepEqual(
+    buildChildEnv(
+      {
+        PI_OFFLINE: "1",
+        OTHER: "configured",
+      },
+      {
+        PI_OFFLINE: "parent",
+        KEEP: "parent",
+      },
+      "linux",
+      false,
+    ),
+    {
+      KEEP: "parent",
+      OTHER: "configured",
+    },
+  );
+});
+
+test("buildChildEnv removes PI_OFFLINE case-insensitively on Windows when offline is false", () => {
+  assert.deepEqual(
+    buildChildEnv(
+      {
+        pi_offline: "1",
+        OTHER: "configured",
+      },
+      {
+        Pi_Offline: "parent-offline",
+        KEEP: "parent",
+      },
+      "win32",
+      false,
+    ),
+    {
+      KEEP: "parent",
+      OTHER: "configured",
+    },
+  );
+});
+
 test("buildChildEnv applies Windows overrides case-insensitively", () => {
   assert.deepEqual(
     buildChildEnv(
@@ -218,6 +261,42 @@ test("buildChildEnv preserves __proto__ as an own env variable", () => {
     ]),
   );
   assert.equal(Object.getOwnPropertyDescriptor(childEnv, "__proto__")?.value, "configured-proto");
+});
+
+test("runFork passes offline false to child env", { timeout: 2500 }, async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-fork-env-test-"));
+  const fakePi = path.join(tmpDir, "fake-pi.mjs");
+  fs.writeFileSync(
+    fakePi,
+    `const text = process.env.PI_OFFLINE ?? "unset";
+const message = { role: "assistant", content: [{ type: "text", text }], timestamp: 1 };
+process.stdout.write(JSON.stringify({ type: "message_end", message }) + "\\n");
+process.stdout.write(JSON.stringify({ type: "agent_end", messages: [message] }) + "\\n");
+`,
+  );
+
+  const originalArgv1 = process.argv[1];
+  const previousOffline = process.env.PI_OFFLINE;
+  process.argv[1] = fakePi;
+  process.env.PI_OFFLINE = "1";
+  try {
+    const result = await runFork({
+      cwd: process.cwd(),
+      task: "env test",
+      forkSessionSnapshotJsonl: '{"type":"session","id":"test-session"}\n',
+      extensions: [],
+      makeDetails,
+      offline: false,
+    });
+
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.messages.at(-1)?.content?.[0]?.text, "unset");
+  } finally {
+    process.argv[1] = originalArgv1;
+    if (previousOffline === undefined) delete process.env.PI_OFFLINE;
+    else process.env.PI_OFFLINE = previousOffline;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 
 test("runFork waits for delayed child auto-retry before semantic completion", { timeout: 3000 }, async () => {

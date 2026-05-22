@@ -80,6 +80,7 @@ test("loadConfig reads pi-fork.extensions and resolves local paths relative to s
         path.join(projectSettingsDir, "project-local"),
       ],
       costFooter: true,
+      offline: true,
       environment: {},
     });
   } finally {
@@ -124,6 +125,7 @@ test("loadConfig treats null extensions as normal Pi extension loading", async (
     assert.deepEqual(loadConfig(projectDir), {
       extensions: null,
       costFooter: true,
+      offline: true,
       environment: {},
     });
   } finally {
@@ -158,6 +160,7 @@ test("loadConfig preserves empty extensions array as no child extensions", async
     assert.deepEqual(loadConfig(projectDir), {
       extensions: [],
       costFooter: true,
+      offline: true,
       environment: {},
     });
   } finally {
@@ -194,8 +197,81 @@ test("loadConfig allows disabling cost footer", async () => {
     assert.deepEqual(loadConfig(projectDir), {
       extensions: null,
       costFooter: false,
+      offline: true,
       environment: {},
     });
+  } finally {
+    if (previous === undefined) delete process.env.PI_FORK_TEST_AGENT_DIR;
+    else process.env.PI_FORK_TEST_AGENT_DIR = previous;
+    cleanup();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("loadConfig parses offline and lets project override global", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-fork-config-fixture-"));
+  const agentDir = path.join(tmpDir, "agent");
+  const projectDir = path.join(tmpDir, "project");
+  const projectSettingsDir = path.join(projectDir, ".pi");
+  const { moduleUrl, cleanup } = createTestableConfigModule();
+
+  fs.mkdirSync(agentDir, { recursive: true });
+  fs.mkdirSync(projectSettingsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(agentDir, "settings.json"),
+    JSON.stringify({
+      "pi-fork": {
+        offline: true,
+      },
+    }),
+  );
+  fs.writeFileSync(
+    path.join(projectSettingsDir, "settings.json"),
+    JSON.stringify({
+      "pi-fork": {
+        offline: false,
+      },
+    }),
+  );
+
+  const previous = process.env.PI_FORK_TEST_AGENT_DIR;
+  process.env.PI_FORK_TEST_AGENT_DIR = agentDir;
+
+  try {
+    const { loadConfig } = await import(`${moduleUrl}?t=${Date.now()}-offline`);
+    assert.equal(loadConfig(projectDir).offline, false);
+  } finally {
+    if (previous === undefined) delete process.env.PI_FORK_TEST_AGENT_DIR;
+    else process.env.PI_FORK_TEST_AGENT_DIR = previous;
+    cleanup();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("loadConfig ignores non-boolean offline", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-fork-config-fixture-"));
+  const agentDir = path.join(tmpDir, "agent");
+  const projectDir = path.join(tmpDir, "project");
+  const projectSettingsDir = path.join(projectDir, ".pi");
+  const { moduleUrl, cleanup } = createTestableConfigModule();
+
+  fs.mkdirSync(agentDir, { recursive: true });
+  fs.mkdirSync(projectSettingsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(projectSettingsDir, "settings.json"),
+    JSON.stringify({
+      "pi-fork": {
+        offline: "false",
+      },
+    }),
+  );
+
+  const previous = process.env.PI_FORK_TEST_AGENT_DIR;
+  process.env.PI_FORK_TEST_AGENT_DIR = agentDir;
+
+  try {
+    const { loadConfig } = await import(`${moduleUrl}?t=${Date.now()}-offline-invalid`);
+    assert.equal(loadConfig(projectDir).offline, true);
   } finally {
     if (previous === undefined) delete process.env.PI_FORK_TEST_AGENT_DIR;
     else process.env.PI_FORK_TEST_AGENT_DIR = previous;
@@ -244,6 +320,7 @@ test("loadConfig merges pi-fork.environment with project overriding global", asy
     assert.deepEqual(loadConfig(projectDir), {
       extensions: null,
       costFooter: true,
+      offline: true,
       environment: {
         SHARED: "project",
         GLOBAL_ONLY: "yes",
@@ -390,6 +467,7 @@ test("loadConfig parses defaultEffort and complete effortProfiles", async () => 
     assert.deepEqual(loadConfig(projectDir), {
       extensions: null,
       costFooter: true,
+      offline: true,
       environment: {},
       defaultEffort: "balanced",
       effortProfiles: {
@@ -514,6 +592,7 @@ test("loadConfig keeps no-profile config backward compatible", async () => {
     assert.deepEqual(loadConfig(projectDir), {
       extensions: null,
       costFooter: true,
+      offline: true,
       environment: {},
     });
   } finally {

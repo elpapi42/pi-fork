@@ -29,7 +29,7 @@ function createTestableIndexModule() {
   );
   fs.writeFileSync(path.join(tmpDir, "coding-agent-stub.mjs"), `export function getAgentDir() { return ""; }\n`);
   fs.writeFileSync(path.join(tmpDir, "cost-stub.mjs"), `export function aggregateInclusiveCost() { return {}; }\nexport function formatForkCostStatus() { return ""; }\n`);
-  fs.writeFileSync(path.join(tmpDir, "config-stub.mjs"), `export const EFFORT_LEVELS = ["fast", "balanced", "deep"];\nexport function loadConfig() { return { extensions: null, environment: {}, costFooter: false }; }\n`);
+  fs.writeFileSync(path.join(tmpDir, "config-stub.mjs"), `export const EFFORT_LEVELS = ["fast", "balanced", "deep"];\nexport function loadConfig() { return { extensions: null, environment: {}, offline: true, costFooter: false }; }\n`);
   fs.writeFileSync(path.join(tmpDir, "render-stub.mjs"), `export function renderForkCall() {}\nexport function renderForkResult() {}\n`);
   fs.writeFileSync(path.join(tmpDir, "runner-stub.mjs"), `export async function runFork() { return { messages: [], usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 } }; }\n`);
   fs.writeFileSync(path.join(tmpDir, "runner-events-stub.mjs"), `export function getResultSummaryText() { return ""; }\n`);

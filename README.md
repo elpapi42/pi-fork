@@ -136,6 +136,23 @@ Example:
 Local extension paths are resolved relative to the settings file directory:
 `~/.pi/agent` for global settings and `.pi` for project settings.
 
+Fork children run offline by default. Set `offline` to `false` when you want
+explicit `npm:` or `git:` extension sources to use Pi's normal temporary
+`--extension` package installer/cache:
+
+```json
+{
+  "pi-fork": {
+    "offline": false,
+    "extensions": ["git:github.com/example/fork-only-extension"]
+  }
+}
+```
+
+The first run may need network access and can be slower while Pi installs or
+clones the package under `/tmp/pi-extensions`. Later runs may reuse that cache,
+though the OS or user can remove it, and unpinned git sources may refresh.
+
 If `pi-fork` itself is listed in `pi-fork.extensions`, child processes will load
 the `fork` tool too.
 
@@ -159,8 +176,12 @@ Fork children still inherit the parent Pi process environment. The resolved
 `environment` map is overlaid on top, so configured variables add or override
 child env vars while omitted variables continue to inherit normally. Project
 settings override global settings; on Windows, that override is case-insensitive.
-`PI_OFFLINE` is always forced to `"1"` for fork children and cannot be
-overridden by `pi-fork.environment`.
+
+`offline` defaults to `true`, which forces `PI_OFFLINE=1` for fork children and
+prevents child package/network startup work. Set `offline` to `false` to remove
+inherited or configured `PI_OFFLINE` from the child environment and allow Pi's
+normal online startup behavior. The explicit `offline` setting is applied after
+`pi-fork.environment`, so `pi-fork.environment.PI_OFFLINE` does not override it.
 
 Invalid entries are ignored: non-string values, empty variable names, names
 containing `=`, and keys or values containing null bytes. Empty string values are

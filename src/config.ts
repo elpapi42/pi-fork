@@ -19,6 +19,9 @@ export interface ForkConfig {
   /** Environment variables to overlay onto child fork processes. */
   environment: Record<string, string>;
 
+  /** Whether child fork processes force Pi offline mode. */
+  offline: boolean;
+
   /** Show fork cost as an extra footer status line. */
   costFooter: boolean;
 
@@ -34,6 +37,7 @@ const SETTINGS_KEY = "pi-fork";
 export const DEFAULT_CONFIG: ForkConfig = {
   extensions: null,
   environment: {},
+  offline: true,
   costFooter: true,
 };
 
@@ -187,6 +191,7 @@ function readNamespacedConfig(settingsPath: string, baseDir: string): Partial<Fo
     const effortProfiles = parseEffortProfiles(config.effortProfiles);
     if (extensions !== undefined) parsed.extensions = extensions;
     if (environment !== undefined) parsed.environment = environment;
+    if (typeof config.offline === "boolean") parsed.offline = config.offline;
     if (typeof config.costFooter === "boolean") parsed.costFooter = config.costFooter;
     if (defaultEffort !== undefined) parsed.defaultEffort = defaultEffort;
     if (effortProfiles !== undefined) parsed.effortProfiles = effortProfiles;
