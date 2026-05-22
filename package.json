@@ -25,17 +25,17 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@mariozechner/pi-agent-core": ">=0.37.0",
-    "@mariozechner/pi-ai": ">=0.37.0",
-    "@mariozechner/pi-coding-agent": ">=0.37.0",
-    "@mariozechner/pi-tui": ">=0.37.0",
+    "@earendil-works/pi-agent-core": ">=0.75.0",
+    "@earendil-works/pi-ai": ">=0.75.0",
+    "@earendil-works/pi-coding-agent": ">=0.75.0",
+    "@earendil-works/pi-tui": ">=0.75.0",
     "@sinclair/typebox": ">=0.34.0"
   },
   "peerDependenciesMeta": {
-    "@mariozechner/pi-agent-core": {
+    "@earendil-works/pi-agent-core": {
       "optional": true
     },
-    "@mariozechner/pi-ai": {
+    "@earendil-works/pi-ai": {
       "optional": true
     }
   }

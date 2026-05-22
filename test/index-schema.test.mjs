@@ -38,7 +38,7 @@ function createTestableIndexModule() {
   const sourcePath = path.join(process.cwd(), "src", "index.ts");
   const source = fs
     .readFileSync(sourcePath, "utf-8")
-    .replace('from "@mariozechner/pi-coding-agent"', 'from "./coding-agent-stub.mjs"')
+    .replace('from "@earendil-works/pi-coding-agent"', 'from "./coding-agent-stub.mjs"')
     .replace('from "@sinclair/typebox"', 'from "./typebox-stub.mjs"')
     .replace('from "./cost.js"', 'from "./cost-stub.mjs"')
     .replace('from "./config.js"', 'from "./config-stub.mjs"')

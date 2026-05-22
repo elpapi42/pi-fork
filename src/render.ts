@@ -5,8 +5,8 @@
  * these hooks only enhance Pi's interactive tool-call widget.
  */
 
-import { getMarkdownTheme } from "@mariozechner/pi-coding-agent";
-import { Container, Markdown, Spacer, Text } from "@mariozechner/pi-tui";
+import { getMarkdownTheme } from "@earendil-works/pi-coding-agent";
+import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { getFinalAssistantText } from "./runner-events.js";
 import { type ForkResult, isResultError, isResultSuccess } from "./types.js";
 

@@ -9,7 +9,7 @@
  * and the requested task. It does not modify the system prompt.
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import { aggregateInclusiveCost, formatForkCostStatus } from "./cost.js";
 import { EFFORT_LEVELS, loadConfig, type ForkConfig } from "./config.js";

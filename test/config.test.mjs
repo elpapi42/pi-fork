@@ -19,7 +19,7 @@ function createTestableConfigModule() {
   const source = fs
     .readFileSync(sourcePath, "utf-8")
     .replace(
-      'from "@mariozechner/pi-coding-agent"',
+      'from "@earendil-works/pi-coding-agent"',
       'from "./pi-coding-agent-stub.mjs"',
     );
   fs.writeFileSync(modulePath, source);
