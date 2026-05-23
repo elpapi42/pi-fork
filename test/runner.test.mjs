@@ -453,8 +453,10 @@ test("buildForkTaskPrompt keeps compact report sections", () => {
 
   for (const heading of oldHeadings) assert.equal(prompt.includes(heading), false, `kept old heading ${heading}`);
 
-  assert.equal(prompt.includes("Use only these four headings"), true);
-  assert.equal(prompt.includes("Omit empty sections except Result"), true);
+  assert.equal(prompt.includes("Always use exactly these four headings"), true);
+  assert.equal(prompt.includes("Omit empty sections except Result"), false);
+  assert.equal(prompt.includes("Right-size Result, Output, and Evidence independently"), true);
+  assert.equal(prompt.includes("Learnings is special: actively look for reusable lessons before writing \"No reusable learnings found.\""), true);
   assert.equal(prompt.includes("Do not narrate every tool call"), true);
   assert.equal(prompt.includes("For each important conclusion, include concrete grounding"), true);
   assert.equal(prompt.includes("Prefer anchors over long explanation"), true);
@@ -468,7 +470,13 @@ test("buildForkTaskPrompt keeps compact report sections", () => {
   assert.equal(prompt.includes("Blast radius: what changes, what remains untouched, and compatibility notes"), true);
   assert.equal(prompt.includes("For validation, include what the check proves and what it does not prove when that matters"), true);
   assert.equal(prompt.includes("Include ruled-out anchors when they prevent repeated rediscovery"), true);
-  assert.equal(prompt.includes("Material assumptions, ruled-out paths, and gotchas belong here only when they are reusable beyond this task"), true);
+  assert.equal(prompt.includes("Right-size the report to the task"), true);
+  assert.equal(prompt.includes("Compact does not mean shallow; it means no low-value content"), true);
+  assert.equal(prompt.includes("Say what happened in the fewest bullets that are still useful"), true);
+  assert.equal(prompt.includes("Output can be short or long depending on the task"), true);
+  assert.equal(prompt.includes("Evidence can be longer when exact grounding prevents re-reading or prevents a bad decision"), true);
+  assert.equal(prompt.includes("Treat this section as important. Actively extract reusable knowledge from the work"), true);
+  assert.equal(prompt.includes("Do not shrink this section merely because the task was simple"), true);
   assert.equal(prompt.includes("Decision state"), false);
 });
 

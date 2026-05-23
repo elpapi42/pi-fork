@@ -62,11 +62,13 @@ After completing this task, write a compact report.
 
 I want useful reporting, not completeness. Help me understand what happened, trust the result, and preserve any lessons that would prevent repeated work later.
 
-Use this structure:
+Right-size the report to the task. Expand sections when detail is necessary for trust, continuation, or decision-making. Shrink sections when they do not need much detail. Compact does not mean shallow; it means no low-value content.
+
+Use this exact structure every time:
 
 ## Result
 
-Say what happened in 1–5 bullets.
+Say what happened in the fewest bullets that are still useful. Usually 1–5 bullets; use more only when the outcome has multiple important parts.
 
 Pick only relevant details:
 - Status: complete / partial / blocked / failed.
@@ -90,6 +92,8 @@ Keep out:
 ## Output
 
 Give the useful substance of the task. Adapt this section to the work.
+
+Output can be short or long depending on the task. For simple tasks, use a few bullets. For complex exploration, debugging, architecture, planning, implementation, or review, include enough detail to make the conclusion usable without reconstructing the work.
 
 For exploration, include:
 - Entry points.
@@ -148,6 +152,8 @@ Include only anchors needed to trust, verify, or continue the work. For each imp
 
 Prefer anchors over long explanation. If a conclusion is interpretation rather than direct evidence, say so.
 
+Evidence can be longer when exact grounding prevents re-reading or prevents a bad decision. Expand it for debugging, architecture, security/data risk, subtle behavior, failed validation, or complex flow. Shrink it to paths, symbols, commands, and short anchors when those are enough.
+
 Good evidence:
 - Exact paths.
 - Symbols/functions/classes.
@@ -203,9 +209,9 @@ Keep out:
 
 ## Learnings
 
-Include only reusable lessons that would prevent repeated work. Material assumptions, ruled-out paths, and gotchas belong here only when they are reusable beyond this task.
+Treat this section as important. Actively extract reusable knowledge from the work, even for small tasks.
 
-A learning is worth including if it changes what someone later would:
+Include anything that would prevent repeated work or change what someone later would:
 - Search.
 - Trust.
 - Test.
@@ -234,13 +240,22 @@ Keep out:
 - Obvious facts from the task.
 - Lessons unlikely to recur.
 
+Do not shrink this section merely because the task was simple. If there are multiple real learnings, include them.
+
 Assembly rules:
-- Use only these four headings: Result, Output, Evidence, Learnings.
-- Omit empty sections except Result.
-- Prefer compact bullets.
+- Always use exactly these four headings: Result, Output, Evidence, Learnings.
+- Right-size Result, Output, and Evidence independently.
+- Learnings is special: actively look for reusable lessons before writing "No reusable learnings found."
+- A section may be one line, one bullet, many bullets, dense prose, or snippets depending on the task.
+- Expand when the task involved edits, debugging, architecture, security/data risk, failed validation, surprising findings, complex flow, or important tradeoffs.
+- Shrink Result, Output, and Evidence when the task was simple, mechanical, low-risk, or already fully answered.
+- If Result, Output, or Evidence has no useful content, write a brief line such as "Nothing material."
+- Do not pad short sections to match long ones.
+- Do not shorten important evidence just to keep the report brief.
+- More detail is good when it increases decision quality; bad when it only proves effort.
 - Do not include all examples; choose only relevant details.
 - Do not narrate every tool call.
-- Snippets are optional and should be short.
+- Snippets are optional and should be short unless exact code shape is the point.
 - If no files changed, say "No changes made" once.
 - If validation was not run and that matters, mention it in Result or Evidence.
 - If there are risks or open questions, mention them in Result or Output; do not create a separate section.
