@@ -1,6 +1,8 @@
 # Pi Fork
 
-Cache-friendly fork tool for Pi.
+Keep your main Pi agent's context window clean while offloading noisy investigation to parallel child agents.
+
+`pi-fork` is a context-management extension first and a parallelism extension second. It lets the current Pi agent expand its work capacity by delegating exploration, review, debugging, planning, and implementation checks to child `pi` processes that inherit the active session branch. They are not independent subagents with separate personas or unrelated context; they start from the same working conversation path, do the noisy work elsewhere, and return dense, decision-useful reports instead of raw search/read/tool noise.
 
 ## Installation
 
@@ -13,6 +15,16 @@ pi install git:github.com/elpapi42/pi-fork
 After installation, start or restart Pi. The extension registers the `fork` tool
 for use in your Pi sessions.
 
+## Why use it?
+
+Large agent tasks often spend most of their context on exploration: file reads, dead ends, broad searches, command output, partial hypotheses, and validation attempts. That information matters, but most of it does not belong in the main agent's long-running context window.
+
+Because each child starts from the active session branch, forks can operate with the same working context as the current agent: the same task history, decisions, constraints, and recent findings on that branch. That makes them useful as extensions of the agent's capacity, not detached assistants that need everything re-explained.
+
+`pi-fork` moves that exploratory noise into child sessions and asks them to return four structured sections: `Result`, `Output`, `Evidence`, and `Learnings`. Good fork reports carry actionable conclusions, exact anchors, decisive snippets, validation meaning, ruled-out paths, affected surfaces, material assumptions, and reusable gotchas. This helps the main conversation stay focused while still benefiting from deep, branch-aware investigation.
+
+Use forks when the cost of missing context is higher than the cost of another model call: codebase exploration, debugging, architecture tradeoffs, adversarial review, implementation validation, release/risk checks, or parallel option spikes. For trivial one-line edits, a fork is usually unnecessary.
+
 ## Usage
 
 `pi-fork` provides one tool:
@@ -23,8 +35,13 @@ for use in your Pi sessions.
 
 The tool starts an isolated child `pi` process with a temporary JSONL snapshot of
 the current active session branch. The child receives the requested task as the
-final user message. The extension does not modify the system prompt and does not
-use agent definition files.
+final user message plus report instructions. The extension does not modify the
+system prompt and does not use agent definition files.
+
+The snapshot contains the current active branch, not the entire session tree.
+Sibling, abandoned, or unrelated historical branches are not copied. This keeps
+forks aligned with the current working path while avoiding unrelated branch
+history.
 
 You can optionally request an intelligence budget for a fork:
 
@@ -92,7 +109,7 @@ Messages:
   Current active branch rebuilt from temporary JSONL
   User: <task>
 
-        After completing this task, write a compact report.
+        After completing this task, write a decision-useful report.
         ...
         ## Result
         ## Output
@@ -102,8 +119,11 @@ Messages:
 
 The extension does not add identity framing such as "main agent" or "parent agent".
 The appended reporting instructions are written as user preferences: useful reporting,
-not completeness; compact bullets; concrete evidence anchors for important
-conclusions; and reusable learnings that prevent repeated work.
+not a short summary. Reports always use the same four headings, but each section
+can grow or shrink to fit the task. The instructions favor dense actionable
+substance, concrete evidence anchors, decisive snippets, validation meaning,
+ruled-out paths, affected surfaces, material assumptions, and reusable learnings
+that prevent repeated work.
 
 This keeps the expensive prefix stable:
 
