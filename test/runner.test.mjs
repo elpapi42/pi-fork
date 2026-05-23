@@ -413,7 +413,7 @@ test("buildForkTaskPrompt starts with the raw task text", () => {
   const task = "Review the prompt framing.";
   const prompt = buildForkTaskPrompt(task);
 
-  assert.equal(prompt.startsWith(`${task}\n\nAfter completing this task, write a compact report.`), true);
+  assert.equal(prompt.startsWith(`${task}\n\nAfter completing this task, write a decision-useful report.`), true);
 });
 
 test("buildForkTaskPrompt avoids explicit fork identity framing", () => {
@@ -470,13 +470,21 @@ test("buildForkTaskPrompt keeps compact report sections", () => {
   assert.equal(prompt.includes("Blast radius: what changes, what remains untouched, and compatibility notes"), true);
   assert.equal(prompt.includes("For validation, include what the check proves and what it does not prove when that matters"), true);
   assert.equal(prompt.includes("Include ruled-out anchors when they prevent repeated rediscovery"), true);
-  assert.equal(prompt.includes("Right-size the report to the task"), true);
-  assert.equal(prompt.includes("Compact does not mean shallow; it means no low-value content"), true);
+  assert.equal(prompt.includes("I want useful reporting, not a short summary"), true);
+  assert.equal(prompt.includes("Each section can grow as much as needed"), true);
+  assert.equal(prompt.includes("Compact means dense and relevant, not necessarily brief"), true);
   assert.equal(prompt.includes("Say what happened in the fewest bullets that are still useful"), true);
   assert.equal(prompt.includes("Output can be short or long depending on the task"), true);
+  assert.equal(prompt.includes("do not collapse the substance into a high-level summary"), true);
   assert.equal(prompt.includes("Evidence can be longer when exact grounding prevents re-reading or prevents a bad decision"), true);
+  assert.equal(prompt.includes("Do not summarize away the code shape when the code shape is the point"), true);
   assert.equal(prompt.includes("Treat this section as important. Actively extract reusable knowledge from the work"), true);
+  assert.equal(prompt.includes("Do not treat Learnings as optional cleanup"), true);
   assert.equal(prompt.includes("Do not shrink this section merely because the task was simple"), true);
+  assert.equal(prompt.includes("Prefer detailed substance over summary when the task was non-trivial"), true);
+  assert.equal(prompt.includes("Sections may grow without a fixed limit"), true);
+  assert.equal(prompt.includes("Detail is waste when it repeats the task, narrates tools, lists everything inspected, or proves effort"), true);
+  assert.equal(prompt.includes("Do not give a high-level summary when the task produced decision-critical details"), true);
   assert.equal(prompt.includes("Decision state"), false);
 });
 
