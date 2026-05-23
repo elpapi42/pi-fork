@@ -45,18 +45,16 @@ function fmtCount(n: number): string {
 
 function fmtModelProvider(result: ForkResult): string {
   const provider = result.provider?.trim();
-  const model = result.model?.trim();
-  if (provider && model) return model.startsWith(`${provider}/`) ? model : `${provider}/${model}`;
-  return model || provider || "";
-}
+  let model = result.model?.trim();
+  if (provider && model?.startsWith(`${provider}/`)) model = model.slice(provider.length + 1);
 
-function fmtEffort(result: ForkResult): string {
-  const effort = result.effort;
-  if (!effort) return "";
-  if (effort.profile) {
-    return `effort ${effort.selected}: ${effort.profile.provider}/${effort.profile.id} thinking ${effort.profile.thinking}`;
-  }
-  return `effort ${effort.selected}: ${effort.warning || "using child Pi defaults"}`;
+  const thinking = result.effort?.profile?.thinking?.trim();
+  const modelProvider = provider && model
+    ? `(${provider}) ${model}`
+    : provider ? `(${provider})`
+      : model || "";
+
+  return modelProvider && thinking ? `${modelProvider} • ${thinking}` : modelProvider;
 }
 
 function fmtUsage(result: ForkResult): string {
@@ -253,7 +251,6 @@ export function renderForkResult(toolResult: any, { expanded }: { expanded: bool
   const icon = forkIcon(result, fg);
   const finalOutput = getFinalAssistantText(result.messages);
   const usage = fmtUsage(result);
-  const effort = fmtEffort(result);
   const toolsText = renderToolLines(result, fg, expanded ? undefined : COLLAPSED_TOOL_COUNT);
   const mdTheme = getMarkdownTheme();
 
@@ -264,11 +261,6 @@ export function renderForkResult(toolResult: any, { expanded }: { expanded: bool
     container.addChild(new Text(header, 0, 0));
 
     addSection(container, "─── Task ───", new Text(fg("dim", result.task || "..."), 0, 0), fg);
-
-    if (effort) {
-      const color = result.effort?.warning ? "warning" : "dim";
-      addSection(container, "─── Effort ───", new Text(fg(color, effort), 0, 0), fg);
-    }
 
     if (toolsText) {
       addSection(container, "─── Activity ───", new Text(toolsText, 0, 0), fg);
@@ -295,11 +287,6 @@ export function renderForkResult(toolResult: any, { expanded }: { expanded: bool
 
   const collapsedStatusPrefix = status === "running" ? "" : "\n";
   let text = `${collapsedStatusPrefix}${icon} ${fg("toolTitle", theme.bold(statusLabel(status)))}`;
-
-  if (effort) {
-    const color = result.effort?.warning ? "warning" : "dim";
-    text += `\n${fg(color, effort)}`;
-  }
 
   if (toolsText) {
     text += `\n${toolsText}`;
