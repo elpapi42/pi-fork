@@ -118,3 +118,41 @@ test("renderForkResult omits separate effort section in expanded view", async ()
     cleanup();
   }
 });
+
+test("renderForkResult adds response token activity after existing activity", async () => {
+  const { mod, cleanup } = await importTestableRenderModule();
+  try {
+    const toolResult = makeToolResult({
+      messages: [{ role: "assistant", content: [{ type: "text", text: "abcdefghijkl" }] }],
+      activities: [
+        { type: "thinking", status: "completed", tokens: 2, activityOrder: 1 },
+        { type: "tool", toolName: "bash", status: "completed", displayText: "bash $ npm test", updates: 1, activityOrder: 2 },
+      ],
+    });
+    const collapsed = collectText(mod.renderForkResult(toolResult, { expanded: false }, makeTheme()));
+    const expanded = collectText(mod.renderForkResult(toolResult, { expanded: true }, makeTheme()));
+
+    assert.match(collapsed, /thinking ~2 tokens\n✓ bash \$ npm test\n✓ response ~3 tokens/);
+    assert.match(expanded, /thinking ~2 tokens\n✓ bash \$ npm test\n✓ response ~3 tokens/);
+  } finally {
+    cleanup();
+  }
+});
+
+test("renderForkResult omits response activity while running or without final output", async () => {
+  const { mod, cleanup } = await importTestableRenderModule();
+  try {
+    const running = collectText(mod.renderForkResult(makeToolResult({
+      exitCode: -1,
+      messages: [{ role: "assistant", content: [{ type: "text", text: "abcdefghijkl" }] }],
+    }), { expanded: false }, makeTheme()));
+    const empty = collectText(mod.renderForkResult(makeToolResult({
+      messages: [],
+    }), { expanded: false }, makeTheme()));
+
+    assert.doesNotMatch(running, /response ~/);
+    assert.doesNotMatch(empty, /response ~/);
+  } finally {
+    cleanup();
+  }
+});

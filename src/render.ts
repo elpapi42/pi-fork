@@ -165,6 +165,24 @@ function thinkingLine(thinking: any, fg: (color: any, text: string) => string): 
   return `${icon} ${fg("toolOutput", label)}`;
 }
 
+function responseActivity(result: ForkResult): any | undefined {
+  if (forkStatus(result) === "running") return undefined;
+  const text = getFinalAssistantText(result.messages).trim();
+  if (!text) return undefined;
+  return {
+    type: "response",
+    status: "completed",
+    tokens: estimateTokensFromChars(text.length),
+    activityOrder: Number.MAX_SAFE_INTEGER,
+  };
+}
+
+function responseLine(response: any, fg: (color: any, text: string) => string): string {
+  const tokens = typeof response?.tokens === "number" ? response.tokens : 0;
+  const label = tokens > 0 ? `response ~${fmtCount(tokens)} tokens` : "response";
+  return `${fg("success", "✓")} ${fg("toolOutput", label)}`;
+}
+
 function activityOrder(item: any, fallback: number): number {
   return typeof item?.activityOrder === "number" ? item.activityOrder : fallback;
 }
@@ -179,16 +197,20 @@ function legacyActivities(result: ForkResult): any[] {
 }
 
 function storedActivities(result: ForkResult): any[] {
-  return hasUnifiedActivities(result) ? result.activities! : legacyActivities(result);
+  const activities = hasUnifiedActivities(result) ? [...result.activities!] : legacyActivities(result);
+  const response = responseActivity(result);
+  if (response) activities.push(response);
+  return activities;
 }
 
 function totalActivityCount(result: ForkResult, stored: any[]): number {
   if (typeof result.activityCount === "number") return Math.max(result.activityCount, stored.length);
   if (hasUnifiedActivities(result)) return stored.length;
-  return totalToolExecutions(result) + (result.thinking ? 1 : 0);
+  return Math.max(totalToolExecutions(result) + (result.thinking ? 1 : 0), stored.length);
 }
 
 function activityLine(activity: any, fg: (color: any, text: string) => string): string {
+  if (activity?.type === "response") return responseLine(activity, fg);
   if (activity?.type === "thinking") return thinkingLine(activity, fg);
   if (activity?.type === "tool") {
     return `${toolIcon(activity, fg)} ${fg(activity?.status === "error" ? "error" : "toolOutput", toolLabel(activity))}${toolErrorSuffix(activity, fg)}`;
