@@ -312,9 +312,6 @@ export function renderForkResult(toolResult: any, { expanded }: { expanded: bool
 
   if (toolsText) {
     text += `\n${toolsText}`;
-    if (finalOutput) text += `\n\n${fg("toolOutput", textPreview(finalOutput))}`;
-  } else if (finalOutput) {
-    text += `\n${fg("toolOutput", textPreview(finalOutput))}`;
   } else if (status === "running") {
     text += `\n${fg("muted", "(running...)")}`;
   } else {
@@ -326,7 +323,7 @@ export function renderForkResult(toolResult: any, { expanded }: { expanded: bool
     if (err) text += `\n${fg("error", textPreview(err))}`;
   }
 
-  if (usage) text += `\n${fg("dim", usage)}`;
+  if (usage) text += `${status === "running" ? "\n" : "\n\n"}${fg("dim", usage)}`;
 
   const activities = storedActivities(result);
   const totalActivities = totalActivityCount(result, activities);

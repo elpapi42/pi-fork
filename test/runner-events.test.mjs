@@ -137,7 +137,7 @@ test("captures child tool execution progress for live fork updates", () => {
       activityOrder: 1,
     },
   ]);
-  assert.equal(getForkProgressText(result), "… read src/index.ts\nfile contents so far");
+  assert.equal(getForkProgressText(result), "… read src/index.ts");
 });
 
 test("captures child thinking progress as estimated tokens without storing thinking text", () => {
@@ -431,7 +431,7 @@ test("fork progress prefixes activity rows with the child tool name", () => {
     result,
   );
 
-  assert.equal(getForkProgressText(result), "✓ bash $ npm test\n✓ fork inspect the renderer\ndone");
+  assert.equal(getForkProgressText(result), "✓ bash $ npm test\n✓ fork inspect the renderer");
 });
 
 test("fork progress renders failed tool errors inline", () => {

@@ -768,11 +768,6 @@ function formatToolProgress(result) {
     if (line) lines.push(line);
   }
 
-  const activeTool = getLatestRelevantToolExecution(result);
-  if (activeTool?.latestText && activeTool.status !== "error" && !activeTool.isError) {
-    lines.push(activeTool.latestText);
-  }
-
   return lines.join("\n").trim();
 }
 

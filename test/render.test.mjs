@@ -167,8 +167,10 @@ test("renderForkResult adds response token activity after existing activity", as
     const collapsed = collectText(mod.renderForkResult(toolResult, { expanded: false }, makeTheme()));
     const expanded = collectText(mod.renderForkResult(toolResult, { expanded: true }, makeTheme()));
 
-    assert.match(collapsed, /thinking ~2 tokens\n✓ bash \$ npm test\n✓ response ~3 tokens/);
+    assert.match(collapsed, /thinking ~2 tokens\n✓ bash \$ npm test\n✓ response ~3 tokens\n\n1 turn/);
+    assert.doesNotMatch(collapsed, /abcdefghijkl/);
     assert.match(expanded, /thinking ~2 tokens\n✓ bash \$ npm test\n✓ response ~3 tokens/);
+    assert.match(expanded, /abcdefghijkl/);
   } finally {
     cleanup();
   }
@@ -186,6 +188,8 @@ test("renderForkResult omits response activity while running or without final ou
     }), { expanded: false }, makeTheme()));
 
     assert.doesNotMatch(running, /response ~/);
+    assert.doesNotMatch(running, /\n\n1 turn/);
+    assert.match(running, /\(running\.\.\.\)\n1 turn/);
     assert.doesNotMatch(empty, /response ~/);
   } finally {
     cleanup();
