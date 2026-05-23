@@ -140,7 +140,7 @@ test("captures child tool execution progress for live fork updates", () => {
   assert.equal(getForkProgressText(result), "… read src/index.ts\nfile contents so far");
 });
 
-test("captures child thinking progress metadata without storing thinking text", () => {
+test("captures child thinking progress as estimated tokens without storing thinking text", () => {
   const result = makeResult();
 
   assert.equal(
@@ -153,7 +153,7 @@ test("captures child thinking progress metadata without storing thinking text", 
     ),
     true,
   );
-  assert.deepEqual(result.thinking, { status: "running", chars: 0, activityOrder: 1 });
+  assert.deepEqual(result.thinking, { status: "running", tokens: 0, activityOrder: 1 });
   assert.equal(getForkProgressText(result), "… thinking...");
 
   processPiEvent(
@@ -170,8 +170,8 @@ test("captures child thinking progress metadata without storing thinking text", 
     },
     result,
   );
-  assert.deepEqual(result.thinking, { status: "running", chars: 7, activityOrder: 1 });
-  assert.equal(getForkProgressText(result), "… thinking 7 chars");
+  assert.deepEqual(result.thinking, { status: "running", tokens: 2, activityOrder: 1 });
+  assert.equal(getForkProgressText(result), "… thinking ~2 tokens");
 
   processPiEvent(
     {
@@ -180,14 +180,21 @@ test("captures child thinking progress metadata without storing thinking text", 
     },
     result,
   );
-  assert.deepEqual(result.thinking, { status: "completed", chars: 14, activityOrder: 1 });
+  assert.deepEqual(result.thinking, { status: "completed", tokens: 4, activityOrder: 1 });
   assert.deepEqual(result.activities, [
-    { type: "thinking", status: "completed", chars: 14, activityOrder: 1 },
+    { type: "thinking", status: "completed", tokens: 4, activityOrder: 1 },
   ]);
-  assert.equal(getForkProgressText(result), "✓ thinking 14 chars");
+  assert.equal(getForkProgressText(result), "✓ thinking ~4 tokens");
 });
 
-test("renders completed zero-character thinking without ellipsis", () => {
+test("renders old chars-only thinking results as estimated tokens", () => {
+  const result = makeResult();
+  result.thinking = { status: "completed", chars: 9, activityOrder: 1 };
+
+  assert.equal(getForkProgressText(result), "✓ thinking ~3 tokens");
+});
+
+test("renders completed zero-token thinking without ellipsis", () => {
   const result = makeResult();
 
   processPiEvent(
@@ -206,9 +213,9 @@ test("renders completed zero-character thinking without ellipsis", () => {
     },
     result,
   );
-  assert.deepEqual(result.thinking, { status: "completed", chars: 0, activityOrder: 1 });
+  assert.deepEqual(result.thinking, { status: "completed", tokens: 0, activityOrder: 1 });
   assert.deepEqual(result.activities, [
-    { type: "thinking", status: "completed", chars: 0, activityOrder: 1 },
+    { type: "thinking", status: "completed", tokens: 0, activityOrder: 1 },
   ]);
   assert.equal(getForkProgressText(result), "✓ thinking");
 });
@@ -264,7 +271,7 @@ test("orders child thinking activity relative to tool activity", () => {
   assert.equal(result.toolExecutions[1].activityOrder, 3);
   assert.equal(
     getForkProgressText(result),
-    "✓ bash $ npm test\n✓ thinking 13 chars\n… read src/render.ts",
+    "✓ bash $ npm test\n✓ thinking ~4 tokens\n… read src/render.ts",
   );
 });
 
@@ -339,21 +346,21 @@ test("keeps separate thinking phases fixed in the activity timeline", () => {
     result.activities.map((activity) => ({
       type: activity.type,
       status: activity.status,
-      chars: activity.chars,
+      tokens: activity.tokens,
       toolName: activity.toolName,
       activityOrder: activity.activityOrder,
     })),
     [
-      { type: "thinking", status: "completed", chars: 13, toolName: undefined, activityOrder: 1 },
-      { type: "tool", status: "completed", chars: undefined, toolName: "bash", activityOrder: 2 },
-      { type: "thinking", status: "completed", chars: 14, toolName: undefined, activityOrder: 3 },
-      { type: "tool", status: "running", chars: undefined, toolName: "read", activityOrder: 4 },
+      { type: "thinking", status: "completed", tokens: 4, toolName: undefined, activityOrder: 1 },
+      { type: "tool", status: "completed", tokens: undefined, toolName: "bash", activityOrder: 2 },
+      { type: "thinking", status: "completed", tokens: 4, toolName: undefined, activityOrder: 3 },
+      { type: "tool", status: "running", tokens: undefined, toolName: "read", activityOrder: 4 },
     ],
   );
   assert.equal(result.thinking.activityOrder, 3);
   assert.equal(
     getForkProgressText(result),
-    "✓ thinking 13 chars\n✓ bash $ npm test\n✓ thinking 14 chars\n… read src/render.ts",
+    "✓ thinking ~4 tokens\n✓ bash $ npm test\n✓ thinking ~4 tokens\n… read src/render.ts",
   );
 });
 

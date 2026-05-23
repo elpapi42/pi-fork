@@ -29,7 +29,9 @@ export interface ForkToolExecution {
 
 export interface ForkThinkingState {
   status: "running" | "completed";
-  chars: number;
+  tokens: number;
+  /** Backward-compatible field for older stored fork results. New results use estimated tokens. */
+  chars?: number;
   activityOrder?: number;
 }
 

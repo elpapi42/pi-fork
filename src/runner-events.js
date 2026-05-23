@@ -422,13 +422,44 @@ function latestRunningThinkingActivity(result) {
   return undefined;
 }
 
+function estimateTokensFromChars(chars) {
+  const safeChars = typeof chars === "number" && Number.isFinite(chars) && chars > 0 ? chars : 0;
+  return safeChars > 0 ? Math.ceil(safeChars / 4) : 0;
+}
+
+function getThinkingChars(activity) {
+  if (typeof activity?._thinkingChars === "number") return activity._thinkingChars;
+  if (typeof activity?.chars === "number") return activity.chars;
+  if (typeof activity?.tokens === "number") return activity.tokens * 4;
+  return 0;
+}
+
+function setThinkingChars(activity, chars) {
+  Object.defineProperty(activity, "_thinkingChars", {
+    value: Math.max(0, chars),
+    writable: true,
+    configurable: true,
+    enumerable: false,
+  });
+  activity.tokens = estimateTokensFromChars(chars);
+  delete activity.chars;
+}
+
+function getThinkingTokens(thinking) {
+  if (typeof thinking?.tokens === "number") return thinking.tokens;
+  if (typeof thinking?.chars === "number") return estimateTokensFromChars(thinking.chars);
+  return 0;
+}
+
 function createThinkingActivity(result) {
-  return addActivity(result, {
+  const activity = addActivity(result, {
     type: "thinking",
     status: "running",
-    chars: 0,
+    tokens: 0,
     activityOrder: nextActivityOrder(result),
   });
+  setThinkingChars(activity, 0);
+  return activity;
 }
 
 function ensureLatestThinkingActivity(result) {
@@ -438,7 +469,7 @@ function ensureLatestThinkingActivity(result) {
 function syncThinkingState(result, activity) {
   result.thinking = {
     status: activity.status,
-    chars: activity.chars,
+    tokens: getThinkingTokens(activity),
     activityOrder: activity.activityOrder,
   };
   return result.thinking;
@@ -540,7 +571,7 @@ function processMessageUpdateEvent(event, result) {
       const activity = ensureLatestThinkingActivity(result);
       activity.status = "running";
       if (typeof assistantEvent.delta === "string") {
-        activity.chars += assistantEvent.delta.length;
+        setThinkingChars(activity, getThinkingChars(activity) + assistantEvent.delta.length);
       }
       syncThinkingState(result, activity);
       return true;
@@ -550,7 +581,7 @@ function processMessageUpdateEvent(event, result) {
       const activity = ensureLatestThinkingActivity(result);
       activity.status = "completed";
       if (typeof assistantEvent.content === "string") {
-        activity.chars = assistantEvent.content.length;
+        setThinkingChars(activity, assistantEvent.content.length);
       }
       syncThinkingState(result, activity);
       return true;
@@ -664,9 +695,9 @@ function formatToolErrorSuffix(tool) {
 function formatThinkingActivityProgress(thinking) {
   if (!thinking || typeof thinking !== "object") return "";
   const icon = thinking.status === "running" ? "…" : "✓";
-  const chars = typeof thinking.chars === "number" ? thinking.chars : 0;
-  const label = chars > 0
-    ? `thinking ${formatCount(chars)} chars`
+  const tokens = getThinkingTokens(thinking);
+  const label = tokens > 0
+    ? `thinking ~${formatCount(tokens)} tokens`
     : thinking.status === "running" ? "thinking..." : "thinking";
   return `${icon} ${label}`;
 }

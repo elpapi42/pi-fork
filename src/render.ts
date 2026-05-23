@@ -147,12 +147,22 @@ function latestToolWithPreview(result: ForkResult): any | undefined {
   return undefined;
 }
 
+function estimateTokensFromChars(chars: number): number {
+  return chars > 0 ? Math.ceil(chars / 4) : 0;
+}
+
+function thinkingTokens(thinking: any): number {
+  if (typeof thinking?.tokens === "number") return thinking.tokens;
+  if (typeof thinking?.chars === "number") return estimateTokensFromChars(thinking.chars);
+  return 0;
+}
+
 function thinkingLine(thinking: any, fg: (color: any, text: string) => string): string {
   if (!thinking) return "";
   const icon = thinking.status === "running" ? fg("warning", "…") : fg("success", "✓");
-  const chars = typeof thinking.chars === "number" ? thinking.chars : 0;
-  const label = chars > 0
-    ? `thinking ${fmtCount(chars)} chars`
+  const tokens = thinkingTokens(thinking);
+  const label = tokens > 0
+    ? `thinking ~${fmtCount(tokens)} tokens`
     : thinking.status === "running" ? "thinking..." : "thinking";
   return `${icon} ${fg("toolOutput", label)}`;
 }
