@@ -5,7 +5,7 @@
  * these hooks only enhance Pi's interactive tool-call widget.
  */
 
-import { getMarkdownTheme } from "@earendil-works/pi-coding-agent";
+import { getMarkdownTheme, keyHint } from "@earendil-works/pi-coding-agent";
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { getFinalAssistantText } from "./runner-events.js";
 import { type ForkResult, isResultError, isResultSuccess } from "./types.js";
@@ -331,7 +331,7 @@ export function renderForkResult(toolResult: any, { expanded }: { expanded: bool
   const activities = storedActivities(result);
   const totalActivities = totalActivityCount(result, activities);
   if (!expanded && (totalActivities > COLLAPSED_TOOL_COUNT || finalOutput || status !== "running")) {
-    text += `\n${fg("muted", "(Ctrl+O to expand)")}`;
+    text += `\n${fg("muted", `(${keyHint("app.tools.expand", "to expand")})`)}`;
   }
 
   return new Text(text, 0, 0);

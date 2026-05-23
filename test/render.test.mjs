@@ -11,7 +11,8 @@ async function importTestableRenderModule() {
 
   fs.writeFileSync(
     path.join(tmpDir, "coding-agent-stub.mjs"),
-    `export function getMarkdownTheme() { return {}; }\n`,
+    `export function getMarkdownTheme() { return {}; }\n` +
+      "export function keyHint(action, label) { return `${action} ${label}`; }\n",
   );
   fs.writeFileSync(
     path.join(tmpDir, "tui-stub.mjs"),
@@ -90,6 +91,13 @@ function collectText(node) {
   if (Array.isArray(node.children)) return node.children.map(collectText).filter(Boolean).join("\n");
   return "";
 }
+
+test("renderForkResult uses Pi keyHint for collapsed expansion hint", () => {
+  const source = fs.readFileSync(path.join(process.cwd(), "src", "render.ts"), "utf-8");
+
+  assert.match(source, /keyHint\("app\.tools\.expand", "to expand"\)/);
+  assert.doesNotMatch(source, /Ctrl\+O to expand/);
+});
 
 test("renderForkResult renders provider, model, and thinking level in usage metadata", async () => {
   const { mod, cleanup } = await importTestableRenderModule();
