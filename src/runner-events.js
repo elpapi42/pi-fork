@@ -6,7 +6,6 @@ const MAX_TOOL_PREVIEW_CHARS = 1200;
 const MAX_TOOL_ARGS_PREVIEW_CHARS = 300;
 const MAX_INLINE_ERROR_PREVIEW_CHARS = 160;
 const MAX_STORED_TOOL_EXECUTIONS = 25;
-const MAX_STORED_ACTIVITIES = 50;
 
 function getSeenMessageSignatures(result) {
   if (!Object.prototype.hasOwnProperty.call(result, "__seenMessageSignatures")) {
@@ -385,9 +384,6 @@ function addActivity(result, activity) {
     : activities.length;
   result.activityCount = totalBefore + 1;
   activities.push(activity);
-  while (activities.length > MAX_STORED_ACTIVITIES) {
-    activities.shift();
-  }
   return activity;
 }
 

@@ -127,6 +127,33 @@ test("renderForkResult omits separate effort section in expanded view", async ()
   }
 });
 
+test("renderForkResult shows all stored activities only when expanded", async () => {
+  const { mod, cleanup } = await importTestableRenderModule();
+  try {
+    const activities = Array.from({ length: 12 }, (_, i) => ({
+      type: "tool",
+      toolCallId: `call_${i}`,
+      toolName: "read",
+      status: "completed",
+      displayText: `read src/${i}.ts`,
+      updates: 1,
+      activityOrder: i + 1,
+    }));
+    const toolResult = makeToolResult({ messages: [], activities, activityCount: activities.length });
+    const collapsed = collectText(mod.renderForkResult(toolResult, { expanded: false }, makeTheme()));
+    const expanded = collectText(mod.renderForkResult(toolResult, { expanded: true }, makeTheme()));
+
+    assert.doesNotMatch(collapsed, /read src\/0\.ts/);
+    assert.match(collapsed, /\.\.\. 4 earlier activities/);
+    assert.match(collapsed, /read src\/4\.ts/);
+    assert.match(collapsed, /read src\/11\.ts/);
+    assert.match(expanded, /read src\/0\.ts/);
+    assert.doesNotMatch(expanded, /earlier activities/);
+  } finally {
+    cleanup();
+  }
+});
+
 test("renderForkResult adds response token activity after existing activity", async () => {
   const { mod, cleanup } = await importTestableRenderModule();
   try {

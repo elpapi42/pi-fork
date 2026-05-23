@@ -499,10 +499,10 @@ test("fork progress prefers final assistant output over tool progress", () => {
   assert.equal(getForkProgressText(result), "Tests pass.");
 });
 
-test("bounds stored child tool execution history", () => {
+test("bounds legacy child tool execution history but keeps all unified activities", () => {
   const result = makeResult();
 
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 60; i++) {
     processPiEvent(
       {
         type: "tool_execution_start",
@@ -514,13 +514,15 @@ test("bounds stored child tool execution history", () => {
     );
   }
 
-  assert.equal(result.toolExecutionCount, 30);
+  assert.equal(result.toolExecutionCount, 60);
   assert.equal(result.toolExecutions.length, 25);
-  assert.equal(result.toolExecutions[0].toolCallId, "call_5");
-  assert.equal(result.toolExecutions.at(-1).toolCallId, "call_29");
-  assert.equal(result.activityCount, 30);
-  assert.equal(result.activities.length, 30);
-  assert.match(getForkProgressText(result), /\.\.\. 20 earlier activities\n… read src\/20\.ts/);
+  assert.equal(result.toolExecutions[0].toolCallId, "call_35");
+  assert.equal(result.toolExecutions.at(-1).toolCallId, "call_59");
+  assert.equal(result.activityCount, 60);
+  assert.equal(result.activities.length, 60);
+  assert.equal(result.activities[0].toolCallId, "call_0");
+  assert.equal(result.activities.at(-1).toolCallId, "call_59");
+  assert.match(getForkProgressText(result), /\.\.\. 50 earlier activities\n… read src\/50\.ts/);
 });
 
 
