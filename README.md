@@ -82,7 +82,7 @@ behavior is unchanged.
 
 ## Context Shape
 
-For a forked child, the LLM context is roughly:
+For a child process, the LLM context is roughly:
 
 ```text
 System:
@@ -90,19 +90,28 @@ System:
 
 Messages:
   Current active branch rebuilt from temporary JSONL
-  User: You are a fork of the main agent. You have full access to the session context above.
-        Complete the task below and nothing beyond it...
-        Task:
-        <task>
+  User: <task>
+
+        After completing this task, write a compact report.
+        ...
+        ## Result
+        ## Output
+        ## Evidence
+        ## Learnings
 ```
+
+The extension does not add identity framing such as "main agent" or "parent agent".
+The appended reporting instructions are written as user preferences: useful reporting,
+not completeness; compact bullets; concrete evidence anchors for important
+conclusions; and reusable learnings that prevent repeated work.
 
 This keeps the expensive prefix stable:
 
 ```text
-normal system prompt + forked session context
+normal system prompt + child session context
 ```
 
-Only the final task message changes per fork.
+Only the final task message changes per child process.
 
 ## Recursive Forks
 

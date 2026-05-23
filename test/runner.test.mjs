@@ -413,38 +413,52 @@ test("buildForkTaskPrompt starts with the raw task text", () => {
   const task = "Review the prompt framing.";
   const prompt = buildForkTaskPrompt(task);
 
-  assert.equal(prompt.startsWith(`${task}\n\nAfter completing this task, write up what happened using this format.`), true);
+  assert.equal(prompt.startsWith(`${task}\n\nAfter completing this task, write a compact report.`), true);
 });
 
 test("buildForkTaskPrompt avoids explicit fork identity framing", () => {
   const prompt = buildForkTaskPrompt("Review the prompt framing.");
 
+  assert.equal(prompt.includes("fork"), false);
   assert.equal(prompt.includes("You are a fork of the main agent"), false);
   assert.equal(prompt.includes("parent agent"), false);
   assert.equal(prompt.includes("main agent"), false);
+  assert.equal(prompt.includes("for the user"), false);
+  assert.equal(prompt.includes("the user"), false);
   assert.equal(prompt.includes("Task:"), false);
   assert.equal(prompt.includes("context above"), false);
   assert.equal(prompt.includes("future fork"), false);
   assert.equal(prompt.includes("future forks"), false);
 });
 
-test("buildForkTaskPrompt keeps required report sections", () => {
+test("buildForkTaskPrompt keeps compact report sections", () => {
   const prompt = buildForkTaskPrompt("Review the prompt framing.");
   const headings = [
-    "## 1. Result / status",
+    "## Result",
+    "## Output",
+    "## Evidence",
+    "## Learnings",
+  ];
+
+  for (const heading of headings) assert.equal(prompt.includes(heading), true, `missing ${heading}`);
+
+  const oldHeadings = [
     "## 2. Scope and authority",
     "## 3. Navigation / tool trail",
-    "## 4. Evidence and context discovered",
-    "## 5. Changes made",
-    "## 6. Data/control flow",
     "## 7. Validation performed",
     "## 8. Risks, gaps, and gotchas",
-    "## 9. Reusable learnings",
     "## 10. Continuation context",
     "## 11. Final handoff",
   ];
 
-  for (const heading of headings) assert.equal(prompt.includes(heading), true, `missing ${heading}`);
+  for (const heading of oldHeadings) assert.equal(prompt.includes(heading), false, `kept old heading ${heading}`);
+
+  assert.equal(prompt.includes("Use only these four headings"), true);
+  assert.equal(prompt.includes("Omit empty sections except Result"), true);
+  assert.equal(prompt.includes("Do not narrate every tool call"), true);
+  assert.equal(prompt.includes("For each important conclusion, include concrete grounding"), true);
+  assert.equal(prompt.includes("Prefer anchors over long explanation"), true);
+  assert.equal(prompt.includes("Source of truth: <path and symbol>"), true);
 });
 
 test("buildPiArgs appends generated fork task prompt as final child argument", () => {

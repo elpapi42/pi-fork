@@ -58,218 +58,162 @@ function cleanupTempDir(dir: string | null): void {
 export function buildForkTaskPrompt(task: string): string {
   return `${task}
 
-After completing this task, write up what happened using this format. Include the relevant sections and be specific enough, i want a detailed report, this task is critical.
+After completing this task, write a compact report.
 
-## 1. Result / status
+I want useful reporting, not completeness. Help me understand what happened, trust the result, and preserve any lessons that would prevent repeated work later.
 
-State exactly what happened.
+Use this structure:
 
-Include:
-- Whether the task is complete, partially complete, blocked, or failed.
-- The most important conclusion in 1–3 sentences.
-- Whether you changed anything.
-- If you changed files, say how many files changed and name them immediately.
-- If you did not change files, explicitly say: "No filesystem changes made."
+## Result
 
-## 2. Scope and authority
+Say what happened in 1–5 bullets.
 
-Briefly state:
-- What you interpreted the task to mean.
-- What you considered in scope.
-- What you deliberately left out of scope.
-- Any assumptions you made.
-- Any decision you made within your authority.
-- Anything that felt outside your authority and should be decided by the user, advisor, or a follow-up step.
+Pick only relevant details:
+- Status: complete / partial / blocked / failed.
+- Outcome: answer, recommendation, root cause, plan, or changed behavior.
+- Changes: files changed, or "no changes made".
+- Confidence: high / medium / low, only if useful.
+- Caveat: important uncertainty, blocker, or unvalidated assumption.
 
-## 3. Navigation / tool trail
+Examples:
+- Complete. No changes made. Found where the behavior is implemented.
+- Partial. Identified the likely root cause, but did not implement a fix.
+- Blocked. Could not validate because the local service would not start.
+- Complete. Changed the implementation and updated the relevant tests.
 
-Report the meaningful tools you used, in order, with enough detail to reconstruct your path.
+Keep out:
+- Long background.
+- Full task restatement.
+- Generic process narration.
 
-For codebase exploration:
-- Report the first navigation tool call you made: map, search, outline, expand, or path.
-- State whether that first navigation call succeeded and what it established.
-- If you skipped navigation tools, explicitly say why.
-- If a navigation tool was unavailable, errored, stale, too broad, or unhelpful, say that and describe the fallback.
+## Output
 
-For all tasks:
-- List files read, outlined, expanded, searched, edited, written, or deleted.
-- List commands run, with exact command text.
-- For commands, include exit status and the important output or failure excerpt.
-- Do not include giant logs. Include the lines that matter.
+Give the useful substance of the task. Adapt this section to the work.
 
-## 4. Evidence and context discovered
-
-This is the most important section for exploration-heavy tasks.
-
-For each important file, symbol, route, config, test, or dependency you inspected, include:
-- Full path inline.
-- The relevant function/type/component/config name.
-- The exact snippet or signature that matters.
-- Why it matters.
-- How it connects to the rest of the flow.
-
-Prefer this shape:
-
-### <full/path/to/file.ext>
-
-What it contains and why it matters.
-
-Relevant snippets:
-
-\`\`\`
-<only the important lines, signatures, branches, types, config keys, or call sites>
-\`\`\`
-
-Connections:
-- Called by / imported by / configured by / rendered from / triggered through ...
-- Calls / imports / mutates / depends on ...
-- Data shape entering and leaving this point ...
-
-Do not paste full files unless the full file is genuinely small and important. Paste slices that preserve reasoning.
-
-## 5. Changes made
-
-Include this section for any edit, write, delete, generated file, migration, config change, dependency change, or test change.
-
-For every changed file, include:
-
-### <full/path/to/changed-file.ext>
-
-Change type: created / edited / deleted / renamed / generated.
-
-Reason:
-- Why this change was needed.
-
-Before:
-\`\`\`
-<old relevant snippet, if available>
-\`\`\`
-
-After:
-\`\`\`
-<new relevant snippet>
-\`\`\`
-
-Semantic effect:
-- What behavior changed.
-- What callers or downstream flows are affected.
-- Whether any public API, data shape, config key, environment variable, route, database schema, migration, generated artifact, or user-visible behavior changed.
-
-Important implementation details:
-- Any non-obvious choices.
-- Any tradeoffs.
-- Any compatibility concerns.
-- Any hidden coupling you accounted for.
-
-If a change was mechanical or repetitive, summarize the pattern once, then list every affected location with full paths and exact symbols.
-
-## 6. Data/control flow
-
-When relevant, explain how the system works after your investigation or change.
-
-Include:
+For exploration, include:
 - Entry points.
-- Main call chain.
-- Important branches.
-- Data structures and type shapes.
-- Side effects.
-- Error paths.
-- Async/background behavior.
-- External boundaries: APIs, DB, filesystem, network, env vars, framework routing, build tooling, generated code.
+- Important files/symbols.
+- Key flow or relationship.
+- Surprising behavior.
 
-Make this detailed enough that someone can continue from your report without reopening the same files.
+For debate or option analysis, include:
+- Recommendation.
+- Strongest arguments.
+- Tradeoffs.
+- Deciding assumptions.
 
-## 7. Validation performed
+For implementation, include:
+- Changed files.
+- Behavior changed.
+- Affected callers/surfaces.
+- Compatibility notes.
 
-Report all validation, even if it failed or was partial.
+For planning/spec work, include:
+- Plan steps.
+- Requirements.
+- Acceptance criteria.
+- Non-goals.
+- Sequencing constraints.
 
-Include:
-- Tests run, exact commands, and results.
-- Typecheck/lint/build commands and results.
-- Manual verification steps.
-- Browser verification, if applicable.
-- Any new or updated tests and what they cover.
-- Any relevant command output excerpts.
-- What you could not verify and why.
+For debugging, include:
+- Root cause.
+- Repro condition.
+- Trace.
+- Ruled-out causes.
+- Fix point.
 
-If you did not run validation, explicitly say why.
+For review/validation, include:
+- Verdict.
+- Issues by severity.
+- Checked surface.
+- Important blind spots.
 
-## 8. Risks, gaps, and gotchas
+For research/docs, include:
+- Answer.
+- Source constraint.
+- Version/API caveat.
+- Implication for this project.
 
-Surface anything important before trusting or building on this work.
+Keep out:
+- Full inventories.
+- Every observation.
+- Tool-by-tool narration.
+- Anything that does not change a decision.
 
-Include:
-- Possible regressions.
-- Missing tests.
-- Ambiguous product behavior.
-- Edge cases.
-- Race/concurrency concerns.
-- Backwards compatibility concerns.
-- Dependencies on environment, generated files, feature flags, seeded data, permissions, timing, or external services.
-- Suspicious code or contradictory findings.
-- Anything that seemed out of scope but important.
+## Evidence
 
-Do not fix out-of-scope issues silently. Report them.
+Include only anchors needed to trust, verify, or continue the work. For each important conclusion, include concrete grounding: path + symbol, command + result, test name, doc/source, config key, error message, or short snippet.
 
-## 9. Reusable learnings
+Prefer anchors over long explanation. If a conclusion is interpretation rather than direct evidence, say so.
 
-Include this section only if the session produced learning that would help avoid wasted work, errors, repeated investigation, or repeated mistakes.
+Good evidence:
+- Exact paths.
+- Symbols/functions/classes.
+- Commands and results.
+- Test names.
+- Config keys or defaults.
+- Source-of-truth notes.
+- Short snippets only when exact wording or code shape matters.
+- Doc/source references.
+- Error messages that explain a failure.
 
-Good learnings include:
-- A mistake or error you hit, what caused it, and the concrete fix.
-- A dead end or misleading path you ruled out, with why.
-- A non-obvious repo/project fact discovered through evidence.
-- A command, test, environment caveat, or workflow gotcha future work should account for.
-- A tricky implementation constraint or edge case and how you handled it.
-- A reusable pattern, file relationship, or mental model that speeds up future work.
+For decisions that depend on code shape, include a tiny evidence packet:
+- Source of truth: <path and symbol>
+- Decisive anchor: <test, call site, config key, error, or short snippet>
+- Why it matters: <one sentence>
 
-Do not include:
-- Generic advice.
-- Obvious facts from the task itself.
-- Speculation without evidence.
-- Secrets, tokens, environment values, or sensitive data.
-- Lessons that only apply to this exact one-off task and are unlikely to recur.
+Keep out:
+- Full command logs.
+- Full read/search history.
+- Long snippets unless necessary.
+- Repeating the same fact without adding trust.
+
+## Learnings
+
+Include only reusable lessons that would prevent repeated work.
+
+A learning is worth including if it changes what someone later would:
+- Search.
+- Trust.
+- Test.
+- Avoid.
+- Try first.
+- Consider risky.
+
+Good learning types:
+- Dead end that looked plausible.
+- Failed attempt and why it failed.
+- Wrong assumption corrected.
+- Stale or misleading doc/comment/name.
+- Command/tool gotcha and recovery.
+- Hidden coupling or side effect.
+- Source-of-truth discovery.
+- Project mental model worth reusing.
 
 For each learning, use this compact shape:
-- Learning: <one sentence>
-  Evidence: <file, command, error, source, or exact observation>
-  Why it matters: <how this helps future work>
-  Reuse trigger: <when this should be remembered or applied>
+- Learning: <one compact lesson>
+  Evidence: <path, command, error, source, or exact observation>
+  Reuse when: <future trigger>
 
-## 10. Continuation context
+Keep out:
+- Generic advice.
+- "I read X."
+- Obvious facts from the task.
+- Lessons unlikely to recur.
 
-Write this section for anyone who may continue, verify, or build on this work.
-
-Include:
-- Best files to start from next time.
-- Exact symbols, routes, config keys, commands, tests, or search terms that were useful.
-- Dead ends you checked so they are not repeated.
-- Assumptions you made that should not accidentally be treated as proven facts.
-- Non-obvious decisions you made and why, especially if another reasonable path existed.
-- Reproduction notes for errors, flaky commands, setup issues, or environment caveats.
-- Fragile areas, hidden coupling, or constraints future work should account for.
-- Mental model of the area in compact form.
-
-Use this as an operational cache, not a reflection diary. Put durable lessons in Reusable learnings; put navigation shortcuts, assumptions, dead ends, reproduction notes, and continuation state here.
-
-## 11. Final handoff
-
-End with:
-- A concise summary of what can be relied on.
-- Any open decisions.
-- Any recommended next action.
-
-Remember:
-- Full paths inline, not only in a file list.
-- Snippets over vague summaries.
-- Relationships over inventory.
-- Exact commands over "ran tests."
-- Exact changed behavior over "updated logic."
-- Explicit "no changes made" when applicable.
-- Report failures, partial results, and uncertainty clearly.
-- Be aggressively detailed about anything you changed.
-- Include reusable learnings only when they are evidence-based and likely to help future work.`;
+Assembly rules:
+- Use only these four headings: Result, Output, Evidence, Learnings.
+- Omit empty sections except Result.
+- Prefer compact bullets.
+- Do not include all examples; choose only relevant details.
+- Do not narrate every tool call.
+- Snippets are optional and should be short.
+- If no files changed, say "No changes made" once.
+- If validation was not run and that matters, mention it in Result or Evidence.
+- If there are risks or open questions, mention them in Result or Output; do not create a separate section.
+- Report what changes future decisions, trust, or behavior.`;
 }
+
 
 const inheritedCliArgs = parseInheritedCliArgs(process.argv);
 
