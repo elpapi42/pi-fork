@@ -458,7 +458,18 @@ test("buildForkTaskPrompt keeps compact report sections", () => {
   assert.equal(prompt.includes("Do not narrate every tool call"), true);
   assert.equal(prompt.includes("For each important conclusion, include concrete grounding"), true);
   assert.equal(prompt.includes("Prefer anchors over long explanation"), true);
+  assert.equal(prompt.includes("Use snippets when raw code/text would let me decide, verify, or continue without reopening the file immediately"), true);
+  assert.equal(prompt.includes("Good snippet targets"), true);
+  assert.equal(prompt.includes("Prefer 3–12 lines"), true);
+  assert.equal(prompt.includes("Use 1–3 snippets for normal tasks"), true);
+  assert.equal(prompt.includes("Snippets that only prove a file was inspected"), true);
   assert.equal(prompt.includes("Source of truth: <path and symbol>"), true);
+  assert.equal(prompt.includes("Material assumption: only if it would change the outcome or recommendation"), true);
+  assert.equal(prompt.includes("Blast radius: what changes, what remains untouched, and compatibility notes"), true);
+  assert.equal(prompt.includes("For validation, include what the check proves and what it does not prove when that matters"), true);
+  assert.equal(prompt.includes("Include ruled-out anchors when they prevent repeated rediscovery"), true);
+  assert.equal(prompt.includes("Material assumptions, ruled-out paths, and gotchas belong here only when they are reusable beyond this task"), true);
+  assert.equal(prompt.includes("Decision state"), false);
 });
 
 test("buildPiArgs appends generated fork task prompt as final child argument", () => {

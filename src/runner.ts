@@ -74,6 +74,7 @@ Pick only relevant details:
 - Changes: files changed, or "no changes made".
 - Confidence: high / medium / low, only if useful.
 - Caveat: important uncertainty, blocker, or unvalidated assumption.
+- Material assumption: only if it would change the outcome or recommendation.
 
 Examples:
 - Complete. No changes made. Found where the behavior is implemented.
@@ -106,7 +107,7 @@ For implementation, include:
 - Changed files.
 - Behavior changed.
 - Affected callers/surfaces.
-- Compatibility notes.
+- Blast radius: what changes, what remains untouched, and compatibility notes.
 
 For planning/spec work, include:
 - Plan steps.
@@ -126,6 +127,7 @@ For review/validation, include:
 - Verdict.
 - Issues by severity.
 - Checked surface.
+- Affected or unaffected surfaces when that changes review scope.
 - Important blind spots.
 
 For research/docs, include:
@@ -153,24 +155,55 @@ Good evidence:
 - Test names.
 - Config keys or defaults.
 - Source-of-truth notes.
-- Short snippets only when exact wording or code shape matters.
+- Short decisive snippets.
 - Doc/source references.
 - Error messages that explain a failure.
+
+Use snippets when raw code/text would let me decide, verify, or continue without reopening the file immediately.
+
+Good snippet targets:
+- Decisive branches or conditions.
+- Function signatures.
+- Type/schema/API contracts.
+- Config defaults.
+- Prompt wording.
+- Call sites.
+- Test assertions.
+- Error messages.
+- Small data/control-flow handoffs.
+- Surprising coupling or behavior.
+
+Snippet rules:
+- Prefer 3–12 lines.
+- Include path + symbol before the snippet.
+- Explain why it matters in one sentence.
+- Trim unrelated lines aggressively.
+- Use 1–3 snippets for normal tasks.
+- Use more only for debugging, architecture, security/data risk, or complex flow.
 
 For decisions that depend on code shape, include a tiny evidence packet:
 - Source of truth: <path and symbol>
 - Decisive anchor: <test, call site, config key, error, or short snippet>
 - Why it matters: <one sentence>
 
+For validation, include what the check proves and what it does not prove when that matters.
+
+Include ruled-out anchors when they prevent repeated rediscovery:
+- Checked path/symbol.
+- What was ruled out.
+- Why it matters.
+
 Keep out:
 - Full command logs.
 - Full read/search history.
 - Long snippets unless necessary.
+- Snippets that only prove a file was inspected.
+- Full files, boilerplate, imports, generated code, or long blocks unless exact text is the point.
 - Repeating the same fact without adding trust.
 
 ## Learnings
 
-Include only reusable lessons that would prevent repeated work.
+Include only reusable lessons that would prevent repeated work. Material assumptions, ruled-out paths, and gotchas belong here only when they are reusable beyond this task.
 
 A learning is worth including if it changes what someone later would:
 - Search.
