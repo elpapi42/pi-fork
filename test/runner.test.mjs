@@ -25,7 +25,7 @@ function makeDetails(results) {
   return { results };
 }
 
-async function runWithFakePi(events, { trailingDelayMs = 0, exitCode = 0, effort, offline } = {}) {
+async function runWithFakePi(events, { trailingDelayMs = 0, exitCode = 0, effort, offline, resolveContextWindow, onUpdate } = {}) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-fork-test-"));
   const fakePi = path.join(tmpDir, "fake-pi.mjs");
   fs.writeFileSync(
@@ -52,6 +52,8 @@ if (${exitCode} !== 0) process.exit(${exitCode});
       makeDetails,
       effort,
       offline,
+      resolveContextWindow,
+      onUpdate,
     });
   } finally {
     process.argv[1] = originalArgv1;
@@ -385,6 +387,74 @@ test("runFork keeps fast semantic completion for successful non-retry agent_end"
   assert.equal(result.exitCode, 0);
   assert.equal(result.messages.at(-1)?.content?.[0]?.text, "Done quickly.");
   assert.equal(isResultSuccess(result), true);
+});
+
+test("runFork enriches contextWindow from child provider and model metadata", { timeout: 2500 }, async () => {
+  const message = assistantSuccess("Done with usage.");
+  message.provider = "openai-codex";
+  message.model = "openai-codex/gpt-5.5";
+  message.usage = {
+    input: 100,
+    output: 20,
+    cacheRead: 0,
+    cacheWrite: 0,
+    totalTokens: 98464,
+    cost: { total: 0.01 },
+  };
+
+  const resolverCalls = [];
+  const updates = [];
+  const result = await runWithFakePi(
+    [
+      { value: { type: "message_end", message } },
+      { value: { type: "agent_end", messages: [message] } },
+    ],
+    {
+      trailingDelayMs: 2000,
+      resolveContextWindow(provider, model) {
+        resolverCalls.push([provider, model]);
+        return 272000;
+      },
+      onUpdate(update) {
+        updates.push(update);
+      },
+    },
+  );
+
+  assert.equal(result.usage.contextTokens, 98464);
+  assert.equal(result.usage.contextWindow, 272000);
+  assert.deepEqual(resolverCalls.at(0), ["openai-codex", "openai-codex/gpt-5.5"]);
+  assert.equal(updates.some((update) => update.details?.results?.[0]?.usage?.contextWindow === 272000), true);
+});
+
+test("runFork omits contextWindow when child model cannot be resolved", { timeout: 2500 }, async () => {
+  const message = assistantSuccess("Done with unknown model.");
+  message.provider = "unknown-provider";
+  message.model = "unknown-model";
+  message.usage = {
+    input: 100,
+    output: 20,
+    cacheRead: 0,
+    cacheWrite: 0,
+    totalTokens: 120,
+    cost: { total: 0.01 },
+  };
+
+  const result = await runWithFakePi(
+    [
+      { value: { type: "message_end", message } },
+      { value: { type: "agent_end", messages: [message] } },
+    ],
+    {
+      trailingDelayMs: 2000,
+      resolveContextWindow() {
+        return undefined;
+      },
+    },
+  );
+
+  assert.equal(result.usage.contextTokens, 120);
+  assert.equal(result.usage.contextWindow, undefined);
 });
 
 test("runFork preserves semantic success for error stop reason with final output and no retry", { timeout: 3500 }, async () => {

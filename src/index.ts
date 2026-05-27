@@ -88,6 +88,39 @@ function formatResultContent(result: ForkResult, isError: boolean): string {
   return `${warning}${summary}`;
 }
 
+export function resolveModelContextWindow(
+  modelRegistry: ExtensionContext["modelRegistry"],
+  provider?: string,
+  model?: string,
+): number | undefined {
+  const trimmedProvider = provider?.trim();
+  const trimmedModel = model?.trim();
+  if (!trimmedModel) return undefined;
+
+  const attempts: Array<[string, string]> = [];
+  if (trimmedProvider) {
+    attempts.push([trimmedProvider, trimmedModel]);
+    if (trimmedModel.startsWith(`${trimmedProvider}/`)) {
+      attempts.push([trimmedProvider, trimmedModel.slice(trimmedProvider.length + 1)]);
+    }
+  } else {
+    const slashIndex = trimmedModel.indexOf("/");
+    if (slashIndex > 0 && slashIndex < trimmedModel.length - 1) {
+      attempts.push([trimmedModel.slice(0, slashIndex), trimmedModel.slice(slashIndex + 1)]);
+    }
+  }
+
+  for (const [attemptProvider, attemptModel] of attempts) {
+    const found = modelRegistry.find(attemptProvider, attemptModel);
+    const contextWindow = found?.contextWindow;
+    if (typeof contextWindow === "number" && Number.isFinite(contextWindow) && contextWindow > 0) {
+      return contextWindow;
+    }
+  }
+
+  return undefined;
+}
+
 function emptyFailedResult(task: string, message: string): ForkResult {
   return {
     task,
@@ -167,6 +200,7 @@ export default function (pi: ExtensionAPI) {
         onUpdate,
         makeDetails,
         effort,
+        resolveContextWindow: (provider, model) => resolveModelContextWindow(ctx.modelRegistry, provider, model),
       });
 
       if (isResultError(result)) {

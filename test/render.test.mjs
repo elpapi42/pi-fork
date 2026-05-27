@@ -127,6 +127,52 @@ test("renderForkResult omits separate effort section in expanded view", async ()
   }
 });
 
+test("renderForkResult renders context fill before model metadata when available", async () => {
+  const { mod, cleanup } = await importTestableRenderModule();
+  try {
+    const rendered = mod.renderForkResult(makeToolResult({
+      usage: {
+        turns: 12,
+        input: 192000,
+        output: 7900,
+        cacheRead: 2000000,
+        cacheWrite: 0,
+        cost: 2.1756,
+        contextTokens: 98464,
+        contextWindow: 272000,
+      },
+    }), { expanded: false }, makeTheme());
+    const text = collectText(rendered);
+
+    assert.match(text, /12 turns ↑192k ↓7\.9k R2\.0M \$2\.1756 36\.2%\/272k \(openai-codex\) gpt-5\.5 • high/);
+  } finally {
+    cleanup();
+  }
+});
+
+test("renderForkResult omits context fill when context data is incomplete", async () => {
+  const { mod, cleanup } = await importTestableRenderModule();
+  try {
+    const rendered = mod.renderForkResult(makeToolResult({
+      usage: {
+        turns: 1,
+        input: 1200,
+        output: 340,
+        cacheRead: 0,
+        cacheWrite: 0,
+        cost: 0.0123,
+        contextTokens: 98464,
+      },
+    }), { expanded: false }, makeTheme());
+    const text = collectText(rendered);
+
+    assert.match(text, /1 turn ↑1\.2k ↓340 \$0\.0123 \(openai-codex\) gpt-5\.5 • high/);
+    assert.doesNotMatch(text, /%\/272k/);
+  } finally {
+    cleanup();
+  }
+});
+
 test("renderForkResult shows all stored activities only when expanded", async () => {
   const { mod, cleanup } = await importTestableRenderModule();
   try {

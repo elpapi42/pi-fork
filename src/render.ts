@@ -57,6 +57,12 @@ function fmtModelProvider(result: ForkResult): string {
   return modelProvider && thinking ? `${modelProvider} • ${thinking}` : modelProvider;
 }
 
+function fmtContextFill(contextTokens: number | undefined, contextWindow: number | undefined): string {
+  if (!contextTokens || !contextWindow || contextTokens <= 0 || contextWindow <= 0) return "";
+  if (!Number.isFinite(contextTokens) || !Number.isFinite(contextWindow)) return "";
+  return `${((contextTokens / contextWindow) * 100).toFixed(1)}%/${fmtCount(contextWindow)}`;
+}
+
 function fmtUsage(result: ForkResult): string {
   const usage = result.usage;
   if (!usage) return "";
@@ -68,6 +74,8 @@ function fmtUsage(result: ForkResult): string {
   if (usage.cacheRead) parts.push(`R${fmtCount(usage.cacheRead)}`);
   if (usage.cacheWrite) parts.push(`W${fmtCount(usage.cacheWrite)}`);
   if (usage.cost) parts.push(`$${usage.cost.toFixed(4)}`);
+  const contextFill = fmtContextFill(usage.contextTokens, usage.contextWindow);
+  if (contextFill) parts.push(contextFill);
   const modelProvider = fmtModelProvider(result);
   if (modelProvider) parts.push(modelProvider);
   return parts.join(" ");

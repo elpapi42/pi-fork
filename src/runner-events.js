@@ -223,7 +223,7 @@ function addAssistantMessage(result, message) {
     result.usage.cacheRead += usage.cacheRead || 0;
     result.usage.cacheWrite += usage.cacheWrite || 0;
     result.usage.cost += usage.cost?.total || 0;
-    result.usage.contextTokens = usage.totalTokens || 0;
+    result.usage.contextTokens = usage.totalTokens || usage.input + usage.output + usage.cacheRead + usage.cacheWrite || 0;
   }
 
   return true;

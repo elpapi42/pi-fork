@@ -28,6 +28,7 @@ const AGENT_END_GRACE_MS = 250;
 const RETRY_DECISION_GRACE_MS = 1000;
 
 type OnUpdateCallback = (partial: AgentToolResult<ForkDetails>) => void;
+export type ContextWindowResolver = (provider?: string, model?: string) => number | undefined;
 
 function resolvePiSpawn(): { command: string; prefixArgs: string[] } {
   const isNode = /[\\/]node(?:\.exe)?$/i.test(process.execPath);
@@ -335,6 +336,7 @@ export interface RunForkOptions {
   onUpdate?: OnUpdateCallback;
   makeDetails: (results: ForkResult[]) => ForkDetails;
   effort?: ForkEffortState;
+  resolveContextWindow?: ContextWindowResolver;
 }
 
 export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
@@ -349,6 +351,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
     onUpdate,
     makeDetails,
     effort,
+    resolveContextWindow,
   } = opts;
 
   if (!forkSessionSnapshotJsonl.trim()) {
@@ -374,7 +377,16 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
   };
   if (effort) result.effort = effort;
 
+  const enrichContextWindow = () => {
+    if (result.usage.contextWindow || !resolveContextWindow) return;
+    const contextWindow = resolveContextWindow(result.provider, result.model);
+    if (typeof contextWindow === "number" && Number.isFinite(contextWindow) && contextWindow > 0) {
+      result.usage.contextWindow = contextWindow;
+    }
+  };
+
   const emitUpdate = () => {
+    enrichContextWindow();
     onUpdate?.({
       content: [
         {
@@ -573,6 +585,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
     });
 
     result.exitCode = exitCode;
+    enrichContextWindow();
     return normalizeCompletedResult(result, wasAborted);
   } finally {
     cleanupTempDir(forkSessionTmpDir);

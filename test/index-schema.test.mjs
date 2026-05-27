@@ -101,3 +101,26 @@ test("fork effort schema accepts omitted or plain effort and rejects quoted effo
   assert.equal(validate(parameters, { task: "inspect this", effort: "balanced" }), true);
   assert.equal(validate(parameters, { task: "inspect this", effort: "\"balanced\"" }), false);
 });
+
+test("resolveModelContextWindow handles provider-prefixed model ids", async () => {
+  const { moduleUrl, cleanup } = createTestableIndexModule();
+  try {
+    const { resolveModelContextWindow } = await import(`${moduleUrl}?t=${Date.now()}`);
+    const calls = [];
+    const registry = {
+      find(provider, model) {
+        calls.push([provider, model]);
+        if (provider === "openai-codex" && model === "gpt-5.5") return { contextWindow: 272000 };
+        return undefined;
+      },
+    };
+
+    assert.equal(resolveModelContextWindow(registry, "openai-codex", "openai-codex/gpt-5.5"), 272000);
+    assert.deepEqual(calls, [
+      ["openai-codex", "openai-codex/gpt-5.5"],
+      ["openai-codex", "gpt-5.5"],
+    ]);
+  } finally {
+    cleanup();
+  }
+});
