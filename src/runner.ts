@@ -32,7 +32,8 @@ export type ContextWindowResolver = (provider?: string, model?: string) => numbe
 
 function resolvePiSpawn(): { command: string; prefixArgs: string[] } {
   const isNode = /[\\/]node(?:\.exe)?$/i.test(process.execPath);
-  if (isNode && process.argv[1]) {
+  const isBun = /[\\/]bun(?:\.exe)?$/i.test(process.execPath);
+  if ((isNode || isBun) && process.argv[1]) {
     return { command: process.execPath, prefixArgs: [process.argv[1]] };
   }
   return { command: process.execPath, prefixArgs: [] };
