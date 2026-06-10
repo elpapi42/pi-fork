@@ -60,6 +60,24 @@ test("captures final assistant output from agent_end after non-zero tool exit", 
   assert.equal(getResultSummaryText(result), "The command failed, and that is the finding.");
 });
 
+test("records and clears the agent_end willRetry flag", () => {
+  const result = makeResult();
+  const message = {
+    role: "assistant",
+    content: [{ type: "text", text: "partial" }],
+    timestamp: 1,
+  };
+
+  processPiEvent({ type: "agent_end", messages: [message], willRetry: true }, result);
+  assert.equal(result.willRetry, true);
+
+  processPiEvent({ type: "agent_end", messages: [message], willRetry: false }, result);
+  assert.equal(result.willRetry, false);
+
+  processPiEvent({ type: "agent_end", messages: [message] }, result);
+  assert.equal(result.willRetry, undefined);
+});
+
 test("deduplicates assistant messages repeated across event types", () => {
   const message = {
     role: "assistant",

@@ -220,6 +220,32 @@ This does not change the parent agent environment, add per-call env config,
 isolate children from inherited env, unset inherited variables, or provide secret
 masking/auditing.
 
+## Rate-Limit Recovery
+
+Fork children rely on Pi's normal auto-retry for provider errors, including
+rate limits. Pi's default retry budget (3 attempts at 2s/4s/8s backoff) is
+often shorter than real rate-limit windows. Increase it in
+`~/.pi/agent/settings.json` or `.pi/settings.json` so fork children wait long
+enough:
+
+```json
+{
+  "retry": {
+    "maxRetries": 6,
+    "baseDelayMs": 5000
+  }
+}
+```
+
+When a child Pi declares an upcoming auto-retry (`agent_end` with
+`willRetry: true`), `pi-fork` keeps the child alive and waits for the retry
+instead of terminating it. When the child declares no retry will happen,
+`pi-fork` finishes promptly. Older Pi versions without the `willRetry` flag
+fall back to a short retry-decision wait.
+
+Terminal quota and billing errors (for example `insufficient_quota`) are
+intentionally not retried by Pi and still fail the fork.
+
 ## Fork Cost Footer
 
 By default, `pi-fork` adds an extra dimmed footer status line with fork cost:

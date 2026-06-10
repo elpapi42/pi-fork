@@ -607,6 +607,8 @@ export function processPiEvent(event, result) {
 
     case "agent_end":
       result.sawAgentEnd = true;
+      if (typeof event.willRetry === "boolean") result.willRetry = event.willRetry;
+      else delete result.willRetry;
       return addMessagesUsage(result, event.messages);
 
     case "auto_retry_start":

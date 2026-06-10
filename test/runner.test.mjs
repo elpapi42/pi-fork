@@ -25,7 +25,7 @@ function makeDetails(results) {
   return { results };
 }
 
-async function runWithFakePi(events, { trailingDelayMs = 0, exitCode = 0, effort, offline, resolveContextWindow, onUpdate } = {}) {
+async function runWithFakePi(events, { trailingDelayMs = 0, exitCode = 0, effort, offline, resolveContextWindow, onUpdate, signal } = {}) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-fork-test-"));
   const fakePi = path.join(tmpDir, "fake-pi.mjs");
   fs.writeFileSync(
@@ -54,6 +54,7 @@ if (${exitCode} !== 0) process.exit(${exitCode});
       offline,
       resolveContextWindow,
       onUpdate,
+      signal,
     });
   } finally {
     process.argv[1] = originalArgv1;
@@ -373,6 +374,97 @@ test("runFork preserves exhausted retry failure when failed attempt has text and
   assert.equal(result.retry?.success, false);
   assert.equal(isResultSuccess(result), false);
   assert.equal(isResultError(result), true);
+});
+
+test("runFork waits past the retry-decision window when agent_end declares willRetry", { timeout: 5000 }, async () => {
+  const failed = assistantError();
+  const recovered = assistantSuccess();
+
+  const startedAt = Date.now();
+  const result = await runWithFakePi(
+    [
+      { value: { type: "message_end", message: failed } },
+      { value: { type: "agent_end", messages: [failed], willRetry: true } },
+      { delayMs: 1400, value: { type: "auto_retry_start", attempt: 1, maxAttempts: 3, delayMs: 5000, errorMessage: "429 rate limit" } },
+      { delayMs: 50, value: { type: "message_end", message: recovered } },
+      { value: { type: "auto_retry_end", success: true, attempt: 1 } },
+      { value: { type: "agent_end", messages: [recovered], willRetry: false } },
+    ],
+    { trailingDelayMs: 2000 },
+  );
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.retry?.success, true);
+  assert.equal(result.messages.at(-1)?.content?.[0]?.text, "Recovered after retry.");
+  assert.equal(isResultSuccess(result), true);
+  assert.ok(
+    Date.now() - startedAt >= 1450,
+    "runner should wait for declared retry past the 1s retry-decision window",
+  );
+});
+
+test("runFork surfaces retry exhaustion after willRetry without a second agent_end", { timeout: 3000 }, async () => {
+  const failed = assistantError();
+
+  const startedAt = Date.now();
+  const result = await runWithFakePi(
+    [
+      { value: { type: "message_end", message: failed } },
+      { value: { type: "agent_end", messages: [failed], willRetry: true } },
+      { delayMs: 200, value: { type: "auto_retry_start", attempt: 3, maxAttempts: 3, delayMs: 8000, errorMessage: "429 rate limit" } },
+      { delayMs: 50, value: { type: "auto_retry_end", success: false, attempt: 3, finalError: "429 rate limit" } },
+    ],
+    { trailingDelayMs: 2000 },
+  );
+
+  assert.equal(result.stopReason, "error");
+  assert.equal(result.errorMessage, "429 rate limit");
+  assert.equal(result.retry?.success, false);
+  assert.equal(result.willRetry, undefined);
+  assert.equal(isResultError(result), true);
+  assert.ok(Date.now() - startedAt < 1500, "runner should fail promptly after retry exhaustion");
+});
+
+test("runFork aborts cleanly while waiting on a declared retry", { timeout: 3000 }, async () => {
+  const failed = assistantError();
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), 400);
+
+  const result = await runWithFakePi(
+    [
+      { value: { type: "message_end", message: failed } },
+      { value: { type: "agent_end", messages: [failed], willRetry: true } },
+    ],
+    { trailingDelayMs: 5000, signal: controller.signal },
+  );
+
+  assert.equal(result.exitCode, 130);
+  assert.equal(result.stopReason, "aborted");
+  assert.equal(result.errorMessage, "Fork was aborted.");
+  assert.equal(result.willRetry, undefined);
+  assert.equal(isResultError(result), true);
+});
+
+test("runFork finishes error agent_end promptly when willRetry is false", { timeout: 2500 }, async () => {
+  const explainedError = assistantError({
+    content: [{ type: "text", text: "Rate limit was the finding." }],
+  });
+
+  const startedAt = Date.now();
+  const result = await runWithFakePi(
+    [
+      { value: { type: "message_end", message: explainedError } },
+      { value: { type: "agent_end", messages: [explainedError], willRetry: false } },
+    ],
+    { trailingDelayMs: 2000 },
+  );
+
+  assert.equal(result.messages.at(-1)?.content?.[0]?.text, "Rate limit was the finding.");
+  assert.equal(isResultSuccess(result), true);
+  assert.ok(
+    Date.now() - startedAt < 900,
+    "runner should not wait the retry-decision window when the child declared no retry",
+  );
 });
 
 test("runFork keeps fast semantic completion for successful non-retry agent_end", { timeout: 2500 }, async () => {

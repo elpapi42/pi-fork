@@ -98,6 +98,8 @@ export interface ForkResult {
   stopReason?: string;
   errorMessage?: string;
   sawAgentEnd?: boolean;
+  /** willRetry flag from the latest child agent_end event, when the child Pi emits it. */
+  willRetry?: boolean;
   effort?: ForkEffortState;
   retry?: ForkRetryState;
   thinking?: ForkThinkingState;
@@ -151,6 +153,9 @@ export function normalizeCompletedResult(
   result: ForkResult,
   wasAborted: boolean,
 ): ForkResult {
+  // willRetry is transient child-lifecycle state; drop it from the durable result.
+  delete result.willRetry;
+
   const hasSemanticSuccess = result.retry?.success === false ? false : hasSemanticCompletion(result);
 
   if (wasAborted) {

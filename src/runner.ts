@@ -518,8 +518,23 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
 
         if (!result.sawAgentEnd) return;
 
+        if (result.willRetry === true) {
+          // Child Pi declared it will auto-retry; wait for retry events
+          // (or process exit) instead of finishing and killing the child.
+          clearSemanticCompletionTimer();
+          clearRetryDecisionTimer();
+          return;
+        }
+
         if (isErrorAgentEnd()) {
           clearSemanticCompletionTimer();
+          if (result.willRetry === false) {
+            // Child Pi declared no retry will happen; finish promptly
+            // instead of waiting the retry-decision window.
+            clearRetryDecisionTimer();
+            scheduleSemanticCompletion(AGENT_END_GRACE_MS);
+            return;
+          }
           if (!retryDecisionTimer) {
             if (!result.retry || typeof result.retry !== "object") result.retry = {};
             result.retry.pending = true;
