@@ -56,6 +56,7 @@ export function buildChildEnv(
   for (const [key, value] of Object.entries(environment)) {
     setEnvValue(env, key, value, platform);
   }
+  setEnvValue(env, "PI_SUBAGENT_CHILD", "1", platform);
   if (offline) setEnvValue(env, PI_OFFLINE_ENV, "1", platform);
   else deleteEnvValue(env, PI_OFFLINE_ENV, platform);
   return env;
