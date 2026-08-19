@@ -571,26 +571,13 @@ test("runFork preserves semantic success for error stop reason with final output
   assert.ok(Date.now() - startedAt < 1800, "runner should not wait for process exit when no retry arrives");
 });
 
-test("buildForkTaskPrompt starts with the raw task text", () => {
+test("buildForkTaskPrompt starts with the raw task text and fork identity", () => {
   const task = "Review the prompt framing.";
   const prompt = buildForkTaskPrompt(task);
+  const identity = "You are a fork. Complete only the bounded task above and report blockers or out-of-scope findings without expanding it. After completing the task, write a decision-useful report.";
 
-  assert.equal(prompt.startsWith(`${task}\n\nAfter completing this task, write a decision-useful report.`), true);
-});
-
-test("buildForkTaskPrompt avoids explicit fork identity framing", () => {
-  const prompt = buildForkTaskPrompt("Review the prompt framing.");
-
-  assert.equal(prompt.includes("fork"), false);
-  assert.equal(prompt.includes("You are a fork of the main agent"), false);
-  assert.equal(prompt.includes("parent agent"), false);
-  assert.equal(prompt.includes("main agent"), false);
-  assert.equal(prompt.includes("for the user"), false);
-  assert.equal(prompt.includes("the user"), false);
-  assert.equal(prompt.includes("Task:"), false);
-  assert.equal(prompt.includes("context above"), false);
-  assert.equal(prompt.includes("future fork"), false);
-  assert.equal(prompt.includes("future forks"), false);
+  assert.equal(prompt.startsWith(`${task}\n\n${identity}`), true);
+  assert.ok(prompt.indexOf(identity) < prompt.indexOf("## Result"));
 });
 
 test("buildForkTaskPrompt keeps compact report sections", () => {
