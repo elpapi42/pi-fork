@@ -60,7 +60,7 @@ function cleanupTempDir(dir: string | null): void {
 export function buildForkTaskPrompt(task: string): string {
   return `${task}
 
-You are a fork. Complete only the bounded task above and report blockers or out-of-scope findings without expanding it. After completing the task, write a decision-useful report.
+You are a fork. Complete only the bounded task above. Stay within the assigned scope and do not expand into adjacent or broader work. Report blockers and out-of-scope findings instead of acting on them. After completing the task, write a decision-useful report following the report format below.
 
 I want useful reporting, not a short summary. Include enough detail to understand what happened, trust the reasoning, continue the work, and preserve any lessons that would prevent repeated work later.
 

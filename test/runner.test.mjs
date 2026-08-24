@@ -574,7 +574,7 @@ test("runFork preserves semantic success for error stop reason with final output
 test("buildForkTaskPrompt starts with the raw task text and fork identity", () => {
   const task = "Review the prompt framing.";
   const prompt = buildForkTaskPrompt(task);
-  const identity = "You are a fork. Complete only the bounded task above and report blockers or out-of-scope findings without expanding it. After completing the task, write a decision-useful report.";
+  const identity = "You are a fork. Complete only the bounded task above. Stay within the assigned scope and do not expand into adjacent or broader work. Report blockers and out-of-scope findings instead of acting on them. After completing the task, write a decision-useful report following the report format below.";
 
   assert.equal(prompt.startsWith(`${task}\n\n${identity}`), true);
   assert.ok(prompt.indexOf(identity) < prompt.indexOf("## Result"));
