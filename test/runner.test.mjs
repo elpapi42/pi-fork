@@ -574,67 +574,34 @@ test("runFork preserves semantic success for error stop reason with final output
 test("buildForkTaskPrompt starts with the raw task text and fork identity", () => {
   const task = "Review the prompt framing.";
   const prompt = buildForkTaskPrompt(task);
-  const identity = "You are a fork. Complete only the bounded task above. Stay within the assigned scope and do not expand into adjacent or broader work. Report blockers and out-of-scope findings instead of acting on them. After completing the task, write a decision-useful report following the report format below.";
+  const identity = "You are a fork. Complete only the bounded task above. Stay within the assigned scope. Do not expand into adjacent or broader work. Report blockers and out-of-scope findings instead of acting on them.";
 
   assert.equal(prompt.startsWith(`${task}\n\n${identity}`), true);
-  assert.ok(prompt.indexOf(identity) < prompt.indexOf("## Result"));
+  assert.ok(prompt.indexOf(identity) < prompt.indexOf("## Output"));
 });
 
-test("buildForkTaskPrompt keeps compact report sections", () => {
+test("buildForkTaskPrompt uses the two-section evidence-backed report contract", () => {
   const prompt = buildForkTaskPrompt("Review the prompt framing.");
-  const headings = [
-    "## Result",
-    "## Output",
-    "## Evidence",
-    "## Learnings",
-  ];
 
-  for (const heading of headings) assert.equal(prompt.includes(heading), true, `missing ${heading}`);
+  for (const heading of ["## Output", "## Learnings"]) {
+    assert.equal(prompt.includes(heading), true, `missing ${heading}`);
+  }
 
-  const oldHeadings = [
-    "## 2. Scope and authority",
-    "## 3. Navigation / tool trail",
-    "## 7. Validation performed",
-    "## 8. Risks, gaps, and gotchas",
-    "## 10. Continuation context",
-    "## 11. Final handoff",
-  ];
+  for (const heading of ["## Result", "## Evidence"]) {
+    assert.equal(prompt.includes(heading), false, `kept removed heading ${heading}`);
+  }
 
-  for (const heading of oldHeadings) assert.equal(prompt.includes(heading), false, `kept old heading ${heading}`);
-
-  assert.equal(prompt.includes("Always use exactly these four headings"), true);
-  assert.equal(prompt.includes("Omit empty sections except Result"), false);
-  assert.equal(prompt.includes("Right-size Result, Output, and Evidence independently"), true);
-  assert.equal(prompt.includes("Learnings is special: actively look for reusable lessons before writing \"No reusable learnings found.\""), true);
-  assert.equal(prompt.includes("Do not narrate every tool call"), true);
-  assert.equal(prompt.includes("For each important conclusion, include concrete grounding"), true);
-  assert.equal(prompt.includes("Prefer anchors over long explanation"), true);
-  assert.equal(prompt.includes("Use snippets when raw code/text would let me decide, verify, or continue without reopening the file immediately"), true);
-  assert.equal(prompt.includes("Good snippet targets"), true);
-  assert.equal(prompt.includes("Prefer 3–12 lines"), true);
-  assert.equal(prompt.includes("Use 1–3 snippets for normal tasks"), true);
-  assert.equal(prompt.includes("Snippets that only prove a file was inspected"), true);
-  assert.equal(prompt.includes("Source of truth: <path and symbol>"), true);
-  assert.equal(prompt.includes("Material assumption: only if it would change the outcome or recommendation"), true);
-  assert.equal(prompt.includes("Blast radius: what changes, what remains untouched, and compatibility notes"), true);
-  assert.equal(prompt.includes("For validation, include what the check proves and what it does not prove when that matters"), true);
-  assert.equal(prompt.includes("Include ruled-out anchors when they prevent repeated rediscovery"), true);
-  assert.equal(prompt.includes("I want useful reporting, not a short summary"), true);
-  assert.equal(prompt.includes("Each section can grow as much as needed"), true);
-  assert.equal(prompt.includes("Compact means dense and relevant, not necessarily brief"), true);
-  assert.equal(prompt.includes("Say what happened in the fewest bullets that are still useful"), true);
-  assert.equal(prompt.includes("Output can be short or long depending on the task"), true);
-  assert.equal(prompt.includes("do not collapse the substance into a high-level summary"), true);
-  assert.equal(prompt.includes("Evidence can be longer when exact grounding prevents re-reading or prevents a bad decision"), true);
-  assert.equal(prompt.includes("Do not summarize away the code shape when the code shape is the point"), true);
-  assert.equal(prompt.includes("Treat this section as important. Actively extract reusable knowledge from the work"), true);
-  assert.equal(prompt.includes("Do not treat Learnings as optional cleanup"), true);
-  assert.equal(prompt.includes("Do not shrink this section merely because the task was simple"), true);
-  assert.equal(prompt.includes("Prefer detailed substance over summary when the task was non-trivial"), true);
-  assert.equal(prompt.includes("Sections may grow without a fixed limit"), true);
-  assert.equal(prompt.includes("Detail is waste when it repeats the task, narrates tools, lists everything inspected, or proves effort"), true);
-  assert.equal(prompt.includes("Do not give a high-level summary when the task produced decision-critical details"), true);
-  assert.equal(prompt.includes("Decision state"), false);
+  assert.equal(prompt.includes("This section is free-form."), true);
+  assert.equal(prompt.includes("When the assigned task could modify files or external state, identify the changed files or external actions. If nothing changed, state `No changes made`."), true);
+  assert.equal(prompt.includes("- For implementation, include changed files, changed behavior, affected callers or surfaces, compatibility impact, what remains untouched, and validation results."), true);
+  assert.equal(prompt.includes("Ground each important conclusion with precise pointers to its source."), true);
+  assert.equal(prompt.includes("Include source snippets when the exact code, text, configuration, error, or response helps verify a conclusion or continue the work."), true);
+  assert.equal(prompt.includes("Include as many snippets as the task needs."), true);
+  assert.equal(prompt.includes("When reporting validation, state what the check proves. Also state what it does not prove when that limit affects trust."), true);
+  assert.equal(prompt.includes("No reusable learnings found."), true);
+  assert.equal(prompt.includes("Right-size both sections independently."), true);
+  assert.equal(prompt.includes("There is no fixed length limit."), true);
+  assert.equal(prompt.includes("Always use exactly these two required headings: `Output` and `Learnings`."), true);
 });
 
 test("buildPiArgs appends generated fork task prompt as final child argument", () => {

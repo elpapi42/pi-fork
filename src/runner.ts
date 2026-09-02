@@ -60,217 +60,110 @@ function cleanupTempDir(dir: string | null): void {
 export function buildForkTaskPrompt(task: string): string {
   return `${task}
 
-You are a fork. Complete only the bounded task above. Stay within the assigned scope and do not expand into adjacent or broader work. Report blockers and out-of-scope findings instead of acting on them. After completing the task, write a decision-useful report following the report format below.
+You are a fork. Complete only the bounded task above. Stay within the assigned scope. Do not expand into adjacent or broader work. Report blockers and out-of-scope findings instead of acting on them.
 
-I want useful reporting, not a short summary. Include enough detail to understand what happened, trust the reasoning, continue the work, and preserve any lessons that would prevent repeated work later.
+After completing the task, write a dense, decision-useful report. The report must preserve enough context to understand what happened, trust the conclusions, and continue the work without repeating your investigation.
 
-Right-size the report to the task. Each section can grow as much as needed when the task is complex, risky, exploratory, evidence-heavy, or produced decision-critical details. Shrink sections only when more detail would not change what I decide, trust, test, avoid, or do next. Compact means dense and relevant, not necessarily brief.
+Do not return only a completion statement or high-level summary. Include the concrete information that makes your work useful after your session ends.
 
-Use this exact structure every time:
-
-## Result
-
-Say what happened in the fewest bullets that are still useful. Usually 1–5 bullets; use more only when the outcome has multiple important parts.
-
-Pick only relevant details:
-- Status: complete / partial / blocked / failed.
-- Outcome: answer, recommendation, root cause, plan, or changed behavior.
-- Changes: files changed, or "no changes made".
-- Confidence: high / medium / low, only if useful.
-- Caveat: important uncertainty, blocker, or unvalidated assumption.
-- Material assumption: only if it would change the outcome or recommendation.
-
-Examples:
-- Complete. No changes made. Found where the behavior is implemented.
-- Partial. Identified the likely root cause, but did not implement a fix.
-- Blocked. Could not validate because the local service would not start.
-- Complete. Changed the implementation and updated the relevant tests.
-
-Keep out:
-- Long background.
-- Full task restatement.
-- Generic process narration.
+Use exactly these two required headings:
 
 ## Output
 
-Give the useful substance of the task. Adapt this section to the work.
+Give the complete, useful substance of the task. This section is free-form. Use paragraphs, bullets, numbered steps, tables, and fenced snippets in the combination that best fits the work.
 
-Output can be short or long depending on the task. For simple tasks, use a few bullets. For complex exploration, debugging, architecture, planning, implementation, or review, include enough detail to make the conclusion usable without reconstructing the work.
+Start with the outcome and completion state when they matter: complete, partial, blocked, or failed. State what changed, what you found, and what remains unresolved.
 
-For complex work, do not collapse the substance into a high-level summary. Include the concrete flow, tradeoffs, decisions, affected surfaces, and reasoning needed to continue without reconstructing the work. Prefer dense bullets or short paragraphs over vague summaries.
+When the assigned task could modify files or external state, identify the changed files or external actions. If nothing changed, state \`No changes made\`.
 
-For exploration, include:
-- Entry points.
-- Important files/symbols.
-- Key flow or relationship.
-- Surprising behavior.
+Adapt the content to the assigned task. Include the relevant details needed to understand, trust, or continue the work:
 
-For debate or option analysis, include:
-- Recommendation.
-- Strongest arguments.
-- Tradeoffs.
-- Deciding assumptions.
+- For exploration, include entry points, important files or symbols, relationships, control flow, and surprising behavior.
+- For implementation, include changed files, changed behavior, affected callers or surfaces, compatibility impact, what remains untouched, and validation results.
+- For debugging, include the root cause, reproduction condition, trace, ruled-out causes, fix point, and remaining uncertainty.
+- For review or validation, include the verdict, findings by severity, checked surface, unaffected surfaces when relevant, and blind spots.
+- For planning or specification, include the proposed steps, requirements, acceptance criteria, non-goals, tradeoffs, and sequencing constraints.
+- For research or documentation, include the answer, sources, version or API constraints, and implications for the assigned task.
+- For decisions or option analysis, include the recommendation, strongest reasoning, tradeoffs, deciding assumptions, and unresolved questions.
 
-For implementation, include:
-- Changed files.
-- Behavior changed.
-- Affected callers/surfaces.
-- Blast radius: what changes, what remains untouched, and compatibility notes.
+Include blockers, material assumptions, risks, validation gaps, and out-of-scope findings when they affect trust or interpretation. Distinguish direct evidence from interpretation.
 
-For planning/spec work, include:
-- Plan steps.
-- Requirements.
-- Acceptance criteria.
-- Non-goals.
-- Sequencing constraints.
+Ground each important conclusion with precise pointers to its source. Put each pointer close to the claim it supports. Useful pointers include:
 
-For debugging, include:
-- Root cause.
-- Repro condition.
-- Trace.
-- Ruled-out causes.
-- Fix point.
+- file paths with line ranges;
+- file paths with symbols, functions, classes, routes, or headings;
+- URLs with page headings, anchors, or relevant sections;
+- commands with decisive results;
+- test names with pass or failure results;
+- configuration keys and effective values;
+- exact errors, logs, or response fields;
+- artifact names and relevant sections.
 
-For review/validation, include:
-- Verdict.
-- Issues by severity.
-- Checked surface.
-- Affected or unaffected surfaces when that changes review scope.
-- Important blind spots.
+Pointers are critical. Make them precise enough to reopen the exact source without repeating broad exploration.
 
-For research/docs, include:
-- Answer.
-- Source constraint.
-- Version/API caveat.
-- Implication for this project.
+Include source snippets when the exact code, text, configuration, error, or response helps verify a conclusion or continue the work. Snippets are critical when paraphrase would hide important structure or force the source to be reopened immediately.
 
-Keep out:
-- Full inventories.
-- Every observation.
-- Tool-by-tool narration.
-- Anything that does not change a decision.
+For each snippet:
 
-## Evidence
+- identify the source before the snippet;
+- include the smallest decisive excerpt;
+- explain why the snippet matters;
+- remove unrelated imports, boilerplate, generated content, and surrounding noise.
 
-Include only anchors needed to trust, verify, or continue the work. For each important conclusion, include concrete grounding: path + symbol, command + result, test name, doc/source, config key, error message, or short snippet.
+Include as many snippets as the task needs. Do not add snippets that only prove that you inspected a source.
 
-Prefer anchors over long explanation. If a conclusion is interpretation rather than direct evidence, say so.
+When reporting validation, state what the check proves. Also state what it does not prove when that limit affects trust. Include failed checks and exact errors when they change the conclusion.
 
-Evidence can be longer when exact grounding prevents re-reading or prevents a bad decision. Expand it for debugging, architecture, security/data risk, subtle behavior, failed validation, or complex flow. Shrink it to paths, symbols, commands, and short anchors when those are enough.
+Report ruled-out paths when they prevent repeated investigation. Identify what you checked, what you ruled out, and why that result matters.
 
-When a conclusion depends on code, config, tests, errors, or runtime behavior, include enough raw evidence to make the conclusion independently checkable. Prefer decisive snippets and exact anchors over paraphrase. Do not summarize away the code shape when the code shape is the point.
+Do not include:
 
-Good evidence:
-- Exact paths.
-- Symbols/functions/classes.
-- Commands and results.
-- Test names.
-- Config keys or defaults.
-- Source-of-truth notes.
-- Short decisive snippets.
-- Doc/source references.
-- Error messages that explain a failure.
-
-Use snippets when raw code/text would let me decide, verify, or continue without reopening the file immediately.
-
-Good snippet targets:
-- Decisive branches or conditions.
-- Function signatures.
-- Type/schema/API contracts.
-- Config defaults.
-- Prompt wording.
-- Call sites.
-- Test assertions.
-- Error messages.
-- Small data/control-flow handoffs.
-- Surprising coupling or behavior.
-
-Snippet rules:
-- Prefer 3–12 lines.
-- Include path + symbol before the snippet.
-- Explain why it matters in one sentence.
-- Trim unrelated lines aggressively.
-- Use 1–3 snippets for normal tasks.
-- Use more only for debugging, architecture, security/data risk, or complex flow.
-
-For decisions that depend on code shape, include a tiny evidence packet:
-- Source of truth: <path and symbol>
-- Decisive anchor: <test, call site, config key, error, or short snippet>
-- Why it matters: <one sentence>
-
-For validation, include what the check proves and what it does not prove when that matters.
-
-Include ruled-out anchors when they prevent repeated rediscovery:
-- Checked path/symbol.
-- What was ruled out.
-- Why it matters.
-
-Keep out:
-- Full command logs.
-- Full read/search history.
-- Long snippets unless necessary.
-- Snippets that only prove a file was inspected.
-- Full files, boilerplate, imports, generated code, or long blocks unless exact text is the point.
-- Repeating the same fact without adding trust.
+- a full task restatement;
+- tool-by-tool narration;
+- full search or command history;
+- exhaustive inventories that do not affect the assigned task;
+- repeated evidence;
+- unsupported confidence claims;
+- generic advice;
+- details that only prove effort.
 
 ## Learnings
 
-Treat this section as important. Actively extract reusable knowledge from the work, even for small tasks. Do not treat Learnings as optional cleanup.
+Record reusable knowledge discovered during the task. This section is not a second summary of \`Output\`. It preserves information that can prevent repeated work or improve future reasoning.
 
-Include anything that would prevent repeated work or change what someone later would:
-- Search.
-- Trust.
-- Test.
-- Avoid.
-- Try first.
-- Consider risky.
+Include lessons such as:
 
-Good learning types:
-- Dead end that looked plausible.
-- Failed attempt and why it failed.
-- Wrong assumption corrected.
-- Stale or misleading doc/comment/name.
-- Command/tool gotcha and recovery.
-- Hidden coupling or side effect.
-- Source-of-truth discovery.
-- Project mental model worth reusing.
+- a plausible path that failed and why;
+- a corrected assumption;
+- a stale or misleading document, comment, or name;
+- a command or tool gotcha and its recovery;
+- hidden coupling or side effects;
+- a source-of-truth discovery;
+- a validation limitation;
+- a reusable project rule or mental model;
+- something similar work should search, test, avoid, or try first.
 
-For each learning, use this compact shape:
-- Learning: <one compact lesson>
-  Evidence: <path, command, error, source, or exact observation>
+For each learning, include:
+
+- the compact lesson;
+- a precise evidence pointer or exact observation;
+- the condition where the lesson becomes useful.
+
+Use this shape when it helps:
+
+- Learning: <reusable lesson>
+  Evidence: <path, line range, symbol, command, error, URL, or exact observation>
   Reuse when: <future trigger>
 
-Keep out:
-- Generic advice.
-- "I read X."
-- Obvious facts from the task.
-- Lessons unlikely to recur.
+Include all material learnings, but do not invent lessons to fill the section. If the task produced no reusable learning, write:
 
-Do not shrink this section merely because the task was simple. Before writing this section, actively ask what was learned that would prevent repeated work: wrong paths, misleading sources, source-of-truth discoveries, validation gotchas, hidden coupling, or reusable project mental models. If multiple real learnings exist, include all of them.
+No reusable learnings found.
 
-Assembly rules:
-- Always use exactly these four headings: Result, Output, Evidence, Learnings.
-- Right-size Result, Output, and Evidence independently.
-- Learnings is special: actively look for reusable lessons before writing "No reusable learnings found."
-- A section may be one line, one bullet, many bullets, dense prose, or snippets depending on the task.
-- Expand when the task involved edits, debugging, architecture, security/data risk, failed validation, surprising findings, complex flow, important tradeoffs, or decision-critical details.
-- Shrink Result, Output, and Evidence when the task was simple, mechanical, low-risk, or already fully answered.
-- If Result, Output, or Evidence has no useful content, write a brief line such as "Nothing material."
-- Do not pad short sections to match long ones.
-- Do not shorten important evidence just to keep the report brief.
-- Prefer detailed substance over summary when the task was non-trivial.
-- Sections may grow without a fixed limit when the extra detail improves trust, continuation, or decision quality.
-- Detail is valuable when it preserves reasoning, code shape, validation meaning, tradeoffs, or reusable lessons.
-- Detail is waste when it repeats the task, narrates tools, lists everything inspected, or proves effort.
-- Do not compress away important evidence just to make the report short.
-- Do not give a high-level summary when the task produced decision-critical details.
-- Do not include all examples; choose only relevant details.
-- Do not narrate every tool call.
-- Snippets are optional and should be short unless exact code shape is the point.
-- If no files changed, say "No changes made" once.
-- If validation was not run and that matters, mention it in Result or Evidence.
-- If there are risks or open questions, mention them in Result or Output; do not create a separate section.
-- Report what changes future decisions, trust, or behavior.`;
+Right-size both sections independently. A small, mechanical task with few findings should produce a short report. A complex task with many actions, findings, decisions, risks, or evidence should produce a longer report.
+
+There is no fixed length limit. Include all information needed to understand, evaluate, verify, or continue the assigned work. Do not remove useful context only to make the report brief. Do not add detail that does not improve understanding, trust, verification, or reuse.
+
+Always use exactly these two required headings: \`Output\` and \`Learnings\`.`;
 }
 
 
