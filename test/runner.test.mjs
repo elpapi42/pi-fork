@@ -153,6 +153,7 @@ test("buildChildEnv overlays configured values onto inherited env", () => {
       INHERITED: "parent",
       OVERRIDE: "configured",
       EMPTY: "",
+      PI_SUBAGENT_CHILD: "1",
       PI_OFFLINE: "1",
     },
   );
@@ -177,6 +178,7 @@ test("buildChildEnv preserves PI_OFFLINE invariant after configured env", () => 
     {
       PI_OFFLINE: "1",
       OTHER: "configured",
+      PI_SUBAGENT_CHILD: "1",
     },
   );
 });
@@ -198,6 +200,7 @@ test("buildChildEnv removes PI_OFFLINE when offline is false", () => {
     {
       KEEP: "parent",
       OTHER: "configured",
+      PI_SUBAGENT_CHILD: "1",
     },
   );
 });
@@ -219,6 +222,7 @@ test("buildChildEnv removes PI_OFFLINE case-insensitively on Windows when offlin
     {
       KEEP: "parent",
       OTHER: "configured",
+      PI_SUBAGENT_CHILD: "1",
     },
   );
 });
@@ -240,6 +244,7 @@ test("buildChildEnv applies Windows overrides case-insensitively", () => {
     {
       path: "configured-path",
       KEEP: "parent",
+      PI_SUBAGENT_CHILD: "1",
       PI_OFFLINE: "1",
     },
   );
@@ -260,10 +265,26 @@ test("buildChildEnv preserves __proto__ as an own env variable", () => {
     envObject([
       ["KEEP", "parent"],
       ["__proto__", "configured-proto"],
+      ["PI_SUBAGENT_CHILD", "1"],
       ["PI_OFFLINE", "1"],
     ]),
   );
   assert.equal(Object.getOwnPropertyDescriptor(childEnv, "__proto__")?.value, "configured-proto");
+});
+
+test("buildChildEnv always injects PI_SUBAGENT_CHILD=1", () => {
+  const childEnv = buildChildEnv({}, { HOME: "/test" }, "linux");
+  assert.equal(childEnv.PI_SUBAGENT_CHILD, "1");
+});
+
+test("buildChildEnv injects PI_SUBAGENT_CHILD=1 even when parent has it unset", () => {
+  const childEnv = buildChildEnv({}, { HOME: "/test", PI_SUBAGENT_CHILD: undefined }, "darwin");
+  assert.equal(childEnv.PI_SUBAGENT_CHILD, "1");
+});
+
+test("buildChildEnv injects PI_SUBAGENT_CHILD=1 on Windows", () => {
+  const childEnv = buildChildEnv({}, { HOME: "/test" }, "win32");
+  assert.equal(childEnv.PI_SUBAGENT_CHILD, "1");
 });
 
 test("runFork passes offline false to child env", { timeout: 2500 }, async () => {
